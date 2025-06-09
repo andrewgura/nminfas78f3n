@@ -113,7 +113,7 @@ export class PlayerCharacter extends Character {
       this.components.add("health", new HealthComponent(this));
 
       // Movement component
-      const movementComponent = new MovementComponent(this, 1550);
+      const movementComponent = new MovementComponent(this);
       this.components.add("movement", movementComponent);
 
       // Input component

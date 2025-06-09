@@ -260,13 +260,6 @@ export class PlayerInputComponent extends Component {
     try {
       if (!this.movementComponent || !this.cursors || !this.wasdKeys) return;
 
-      // Skip if player is already moving or cooldown hasn't expired
-      if (
-        this.movementComponent.isMoving ||
-        time - this.movementComponent.lastMoveTime < this.movementComponent.moveDelay
-      )
-        return;
-
       const direction = this.getMovementDirection();
       if (!direction.dx && !direction.dy) return;
 

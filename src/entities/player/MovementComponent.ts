@@ -23,16 +23,13 @@ interface SceneWithChangeMap extends Phaser.Scene {
 }
 
 export class MovementComponent extends Component {
-  speed: number = 5;
   tileSize: number = 32;
-  moveDelay: number = 5;
-  lastMoveTime: number = 0;
   facing: string = "down";
   isMoving: boolean = false;
+  moveSpeed: number = 100;
 
-  constructor(entity: Character, speed: number = 900) {
+  constructor(entity: Character) {
     super(entity);
-    this.speed = speed;
   }
 
   get character(): Character {
@@ -45,7 +42,6 @@ export class MovementComponent extends Component {
       if (this.isMoving) return;
 
       this.isMoving = true;
-      this.lastMoveTime = time;
 
       // Emit movement start event
       eventBus.emit("entity.movement.start", {
@@ -59,7 +55,7 @@ export class MovementComponent extends Component {
         targets: this.entity,
         x: x,
         y: y,
-        duration: 70, // Adjust for desired speed (lower = faster)
+        duration: this.moveSpeed,
         ease: "Linear",
         onComplete: () => {
           this.isMoving = false;
