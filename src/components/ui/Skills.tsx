@@ -334,10 +334,11 @@ const SkillsWindow: React.FC = () => {
     mana: 100, // Default value, adjust as needed
     power: 0,
     armor: 0,
-    moveSpeed: 300, // Default value
+    moveSpeed: 1, // Default value
     healthRegen: 1, // Default value
     manaRegen: 1, // Default value
     capacity: playerCharacter.maxCapacity,
+    attackSpeed: 2,
   };
 
   // Icons for secondary stats
@@ -350,6 +351,7 @@ const SkillsWindow: React.FC = () => {
     healthRegen: "💗",
     manaRegen: "💦",
     capacity: "📦",
+    attackSpeed: "💨",
   };
 
   // Friendly names for secondary stats
@@ -359,7 +361,7 @@ const SkillsWindow: React.FC = () => {
     power: "Power",
     armor: "Armor",
     strength: "Strength",
-    moveSpeed: "Movement Speed",
+    moveSpeed: "Move Speed",
     healthRegen: "Health Regen",
     manaRegen: "Mana Regen",
     capacity: "Capacity",
@@ -592,6 +594,14 @@ const SkillsWindow: React.FC = () => {
                     bonusValue={calculateTotalArmor(playerCharacter.equipment)}
                     icon={secondaryStatIcons.armor}
                   />
+
+                  <SecondaryStatRow
+                    statId="attackSpeed"
+                    statName="Attack Speed"
+                    baseValue={baseSecondaryStats.attackSpeed}
+                    bonusValue={calculateTotalArmor(playerCharacter.equipment)}
+                    icon={secondaryStatIcons.attackSpeed}
+                  />
                 </div>
               </div>
 
@@ -622,11 +632,11 @@ const SkillsWindow: React.FC = () => {
 
                 {/* Movement Stats Section */}
                 <div className="secondary-stats-section">
-                  <h4 className="secondary-stats-header">Movement</h4>
+                  <h4 className="secondary-stats-header">Misc</h4>
 
                   <SecondaryStatRow
                     statId="moveSpeed"
-                    statName="Movement Speed"
+                    statName="Move Speed"
                     baseValue={baseSecondaryStats.moveSpeed}
                     bonusValue={calculateSecondaryStatBonus("moveSpeed", playerCharacter.equipment)}
                     icon={secondaryStatIcons.moveSpeed}
