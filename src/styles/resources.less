@@ -1,0 +1,255 @@
+@import "variables.less";
+
+/**
+ * resources.less
+ * Styles for the resources panel including health/mana bars and status effects
+ */
+
+.resources-panel {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 300px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Common styles for resource bars */
+.resource-bar {
+  width: 100%;
+  height: 22px;
+  background-color: @bg-primary;
+  border: 1px solid @border-primary;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  .innerBoxShadow();
+  pointer-events: auto;
+}
+
+.resource-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+
+.resource-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: @text-primary;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.7);
+}
+
+/* Health bar specific styles */
+.health-bar .resource-bar-fill {
+  &.health-bar-fill-high {
+    background: linear-gradient(to right, @success, darken(@success, 10%));
+  }
+
+  &.health-bar-fill-medium {
+    background: linear-gradient(to right, @warning, darken(@warning, 10%));
+  }
+
+  &.health-bar-fill-low {
+    background: linear-gradient(to right, @danger, darken(@danger, 10%));
+  }
+
+  &.health-bar-fill-very-low {
+    background: linear-gradient(to right, darken(@danger, 10%), darken(@danger, 25%));
+  }
+}
+
+/* Mana bar specific styles */
+.mana-bar-fill {
+  background: linear-gradient(to right, #0066cc, #3399ff);
+}
+
+/* Flash animations */
+.health-flash {
+  animation: health-flash 0.3s;
+}
+
+.resource-flash {
+  animation: resource-flash 0.3s;
+}
+
+@keyframes health-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes resource-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Status bar styles */
+.status-bar {
+  display: flex;
+  height: 20px;
+  background-color: @transparent-bg-dark;
+  border: 1px solid @border-primary;
+  border-radius: 3px;
+  padding: 0 5px;
+  justify-content: flex-end;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+  margin-left: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  border-radius: 50%;
+  position: relative;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+
+  /* Individual status styles */
+  &.in-combat {
+    color: @danger;
+    animation: pulse-combat 1.5s infinite;
+  }
+
+  &.is-fed {
+    color: @success;
+  }
+
+  &.is-burning {
+    color: #ff9900;
+    animation: pulse-burning 0.7s infinite;
+  }
+
+  &.is-poisoned {
+    color: #66ff33;
+    animation: pulse-poison 2s infinite;
+  }
+
+  &.is-slowed {
+    color: #99ccff;
+  }
+
+  &.is-extra-regen {
+    color: #ff6699;
+    animation: pulse-regen 1.2s infinite;
+  }
+}
+
+/* Status animations */
+@keyframes pulse-combat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-burning {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-poison {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-regen {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .resources-panel {
+    width: 250px;
+  }
+
+  .resource-bar {
+    height: 18px;
+  }
+
+  .resource-bar-text {
+    font-size: 10px;
+  }
+
+  .status-bar {
+    height: 18px;
+  }
+
+  .status-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+  }
+}

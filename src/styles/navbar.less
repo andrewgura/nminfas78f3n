@@ -1,0 +1,223 @@
+@import "variables.less";
+
+.nav-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Keep 3 columns */
+  grid-template-rows: repeat(2, 1fr); /* Add second row for 5 buttons */
+  gap: 4px;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nav-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+
+  &:hover {
+    background-color: @transparent-bg-medium;
+
+    .nav-button {
+      border-color: @accent;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-button-label {
+      color: @text-primary;
+    }
+  }
+
+  &.active {
+    background-color: @transparent-bg-medium;
+
+    .nav-button {
+      border-color: @text-highlight;
+      box-shadow:
+        0 0 8px rgba(106, 181, 255, 0.5),
+        0 4px 6px rgba(0, 0, 0, 0.3);
+
+      &::after {
+        opacity: 1;
+      }
+    }
+
+    .nav-button-label {
+      color: @text-highlight;
+      font-weight: bold;
+    }
+  }
+
+  /* Center the 5th button (creatures) across the bottom */
+  &:nth-child(5) {
+    grid-column: 2 / 3;
+    grid-row: 2;
+  }
+}
+
+.nav-button {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(to bottom, lighten(@bg-secondary, 8%), @bg-secondary);
+  border: 2px solid @border-primary;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.2),
+    inset 0 0 5px rgba(0, 0, 0, 0.5);
+
+  /* Active indicator dot */
+  &::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: @text-highlight;
+    box-shadow: 0 0 4px rgba(106, 181, 255, 0.8);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  @media (max-height: 768px) {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+.nav-button-icon {
+  font-size: 22px;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.7));
+
+  @media (max-height: 768px) {
+    font-size: 18px;
+  }
+}
+
+.nav-button-label {
+  font-size: 12px;
+  color: @text-secondary;
+  text-align: center;
+  font-family: "Georgia", serif;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+
+  @media (max-height: 768px) {
+    font-size: 10px;
+  }
+}
+
+.ui-navbar {
+  position: absolute;
+  top: 10px;
+  right: 230px; /* Position to the left of the UI panel */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+
+.ui-nav-button {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(to bottom, lighten(@bg-secondary, 8%), @bg-secondary);
+  border: 2px solid @border-primary;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.2),
+    inset 0 0 5px rgba(0, 0, 0, 0.5);
+
+  &:hover {
+    border-color: @accent;
+    box-shadow:
+      0 0 5px rgba(126, 145, 181, 0.5),
+      inset 0 0 5px rgba(0, 0, 0, 0.5);
+    transform: translateX(-2px);
+  }
+
+  &.active {
+    border-color: @text-highlight;
+    box-shadow:
+      0 0 8px rgba(106, 181, 255, 0.7),
+      inset 0 0 5px rgba(0, 0, 0, 0.5);
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: @text-highlight;
+      box-shadow: 0 0 4px rgba(106, 181, 255, 0.8);
+    }
+  }
+}
+
+.ui-nav-icon {
+  font-size: 20px;
+  color: @text-primary;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.7));
+}
+
+.ui-nav-button:hover .ui-nav-icon {
+  color: @text-highlight;
+}
+
+/* Tooltip */
+.ui-nav-button:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  right: 45px;
+  transform: translateY(-50%);
+  background-color: @bg-secondary;
+  color: @text-primary;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid @border-primary;
+  .boxShadow();
+  z-index: 100;
+}
+
+/* Active state */
+.ui-nav-button.active .ui-nav-icon {
+  color: @text-highlight;
+}
+
+@media (max-height: 600px) {
+  .ui-nav-button {
+    width: 30px;
+    height: 30px;
+  }
+
+  .ui-nav-icon {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,224 @@
+@import "variables.less";
+
+/* Common UI Components */
+
+/* Common UI section headers */
+.ui-section-header {
+  background: linear-gradient(to right, @bg-tertiary, lighten(@bg-tertiary, 5%), @bg-tertiary);
+  padding: 6px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: @text-highlight;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  font-family: "Georgia", serif;
+  border: 1px solid @border-primary;
+  .textShadow();
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Game UI container */
+#game-ui {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 220px;
+  height: 100%;
+  background-color: @bg-secondary;
+  background-image: @bg-texture;
+  background-blend-mode: overlay;
+  border-left: 2px solid @border-primary;
+  color: @text-primary;
+  font-family: "Georgia", serif;
+  z-index: 100;
+  overflow: auto;
+  padding: 10px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+  .scrollbarStyle();
+  box-sizing: border-box;
+}
+
+/* Health bars */
+.health-bar-wrapper {
+  border: 1px solid @border-primary !important;
+  background-color: @bg-primary !important;
+  .innerBoxShadow() !important;
+}
+
+.health-bar-fill-high {
+  .successGradient() !important;
+}
+
+.health-bar-fill-medium {
+  .warningGradient() !important;
+}
+
+.health-bar-fill-low {
+  .dangerGradient() !important;
+}
+
+/* Skill bars */
+.skill-progress-container {
+  .medievalBorder() !important;
+  background-color: @bg-primary !important;
+  .innerBoxShadow() !important;
+}
+
+/* Animations for button effects */
+@keyframes medieval-button-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(126, 145, 181, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(126, 145, 181, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(126, 145, 181, 0.3);
+  }
+}
+
+.medieval-button-effect {
+  &:hover {
+    animation: medieval-button-glow 1.5s infinite;
+  }
+}
+
+/* Message display */
+.game-message {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: @transparent-bg-dark;
+  color: @text-primary;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-family: "Arial", sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+  transition: opacity 0.3s;
+  text-align: center;
+  max-width: 80%;
+  white-space: pre-line;
+}
+
+.error-message {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(176, 64, 80, 0.8);
+  color: @text-primary;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-family: "Arial", sans-serif;
+  font-size: 14px;
+  z-index: 1001;
+  transition: opacity 0.3s;
+  text-align: center;
+  max-width: 80%;
+}
+
+/* UI Panel base styles */
+.ui-panel {
+  position: absolute;
+  background-color: @transparent-bg-dark;
+  .medievalBorder();
+  border-radius: 5px;
+  color: @text-primary;
+  .boxShadow();
+  z-index: 100;
+  overflow: auto;
+  padding: 10px;
+  font-family: "Arial", sans-serif;
+  .scrollbarStyle();
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Generic button styles */
+.ui-button {
+  .buttonStyle();
+}
+
+/* Panel title */
+.ui-panel-title {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid @border-primary;
+  padding-bottom: 5px;
+  color: @text-highlight;
+}
+
+/* Close button */
+.ui-close-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  color: @text-secondary;
+  font-size: 16px;
+  cursor: pointer;
+
+  &:hover {
+    color: @text-primary;
+  }
+}
+
+/* Improved section header with controls */
+.ui-section-header-with-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to right, @bg-tertiary, lighten(@bg-tertiary, 5%), @bg-tertiary);
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  border: 1px solid @border-primary;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    color: @text-highlight;
+    font-family: "Georgia", serif;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  }
+}
+
+.ui-window-controls {
+  display: flex;
+  align-items: center;
+}
+
+.ui-window-control {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid @border-primary;
+  background: linear-gradient(to bottom, lighten(@ui-element, 5%), @ui-element);
+  color: @text-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+  margin-left: 5px;
+
+  &:hover {
+    background: linear-gradient(to bottom, lighten(@ui-element, 12%), lighten(@ui-element, 5%));
+    color: @text-highlight;
+  }
+
+  &:active {
+    background: linear-gradient(to bottom, @ui-element, darken(@ui-element, 5%));
+    transform: translateY(1px);
+  }
+}

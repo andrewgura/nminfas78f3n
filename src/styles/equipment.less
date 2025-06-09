@@ -1,0 +1,304 @@
+@import "variables.less";
+
+/**
+ * equipment.less
+ * Styles for the equipment UI elements
+ */
+
+/* Main equipment container */
+.inventory-equipment-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.equipment-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 5px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Enhanced section header with controls */
+.ui-section-header-with-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: @bg-tertiary;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  border: 1px solid @border-primary;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    color: @text-highlight;
+    font-family: "Georgia", serif;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  }
+}
+
+.ui-window-controls {
+  display: flex;
+  align-items: center;
+}
+
+.ui-window-control {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid @border-primary;
+  background: linear-gradient(to bottom, lighten(@ui-element, 5%), @ui-element);
+  color: @text-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+  margin-left: 5px;
+
+  &:hover {
+    background: linear-gradient(to bottom, lighten(@ui-element, 12%), lighten(@ui-element, 5%));
+    color: @text-highlight;
+  }
+
+  &:active {
+    background: linear-gradient(to bottom, @ui-element, darken(@ui-element, 5%));
+    transform: translateY(1px);
+  }
+}
+
+/* Equipment slots grid layout */
+.equipment-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 5px;
+  padding: 8px;
+  background-color: @bg-secondary;
+  background-image: @bg-texture;
+  background-blend-mode: overlay;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  border: 1px solid @border-primary;
+  .innerBoxShadow();
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Individual slot containers */
+.slot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+}
+
+/* Slot name label */
+.slot-name {
+  font-size: 9px;
+  color: @text-secondary;
+  .textShadow();
+  font-family: "Georgia", serif;
+  margin-top: 2px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Basic slot appearance */
+.item-slot {
+  width: 36px;
+  height: 36px;
+  background-color: @bg-primary;
+  border-radius: 4px;
+  border: 2px solid @border-primary;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 22px;
+  margin-bottom: 2px;
+  .innerBoxShadow();
+  .transition();
+  position: relative;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: @accent;
+    box-shadow:
+      0 0 5px rgba(126, 145, 181, 0.5),
+      inset 0 0 5px rgba(0, 0, 0, 0.5);
+  }
+
+  @media (max-width: 1200px) {
+    width: 34px;
+    height: 34px;
+  }
+
+  @media (max-width: 1000px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Empty slot styling */
+.item-slot.empty::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.4;
+}
+
+/* Hover effect for empty slots */
+.item-slot.empty:hover::before {
+  opacity: 0.7;
+}
+
+/* Empty helmet slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="head"]::before,
+.item-slot.empty[data-slot-type="helmet"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a8 8 0 0 0-8 8v1h16v-1a8 8 0 0 0-8-8z'%3E%3C/path%3E%3Cpath d='M4 11v3a8 8 0 0 0 16 0v-3'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Empty armor slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="armor"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 16v-2a4 4 0 0 0-8 0v2'%3E%3C/path%3E%3Cpath d='M12 4C8.5 4 7 6 7 8.5V10l-3 2v3h16v-3l-3-2V8.5C17 6 15.5 4 12 4Z'%3E%3C/path%3E%3Cpath d='M4 15v7h16v-7'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Empty necklace slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="neck"]::before,
+.item-slot.empty[data-slot-type="amulet"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v8'%3E%3C/path%3E%3Cpath d='M5 10h14'%3E%3C/path%3E%3Cpath d='M5 10a7 7 0 0 0 7 7v0a7 7 0 0 0 7-7'%3E%3C/path%3E%3Cpath d='M12 17v5'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Empty weapon slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="weapon"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 17.5L3 6V3h3l11.5 11.5'%3E%3C/path%3E%3Cpath d='M13 19l6-6'%3E%3C/path%3E%3Cpath d='M16 16l4 4'%3E%3C/path%3E%3Cpath d='M19 21l2-2'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Empty offhand/shield slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="offhand"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'%3E%3C/path%3E%3Cpath d='M12 8v5'%3E%3C/path%3E%3Cpath d='M9 11h6'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Empty trinket/gemstone slot icon - SVG with updated color */
+.item-slot.empty[data-slot-type="trinket"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4d6b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h12l4 6-10 13L2 9z'%3E%3C/path%3E%3Cpath d='M12 22V8'%3E%3C/path%3E%3Cpath d='M12 8 2.31 9.5'%3E%3C/path%3E%3Cpath d='M12 8l9.69 1.5'%3E%3C/path%3E%3C/svg%3E");
+}
+
+/* Valid drop target indicator */
+.item-slot.valid-target {
+  border-color: @success !important; /* Green border */
+  box-shadow:
+    0 0 10px rgba(74, 140, 112, 0.7),
+    inset 0 0 5px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Invalid drop target indicator */
+.item-slot.invalid-target {
+  border-color: @danger !important; /* Red border */
+  box-shadow:
+    0 0 10px rgba(176, 64, 80, 0.7),
+    inset 0 0 5px rgba(0, 0, 0, 0.5) !important;
+  cursor: not-allowed;
+}
+
+/* Item being dragged */
+.item-slot.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+/* Item quality indicators */
+.item-slot.quality-common {
+  border-color: @quality-common;
+}
+
+.item-slot.quality-uncommon {
+  border-color: @quality-uncommon;
+}
+
+.item-slot.quality-rare {
+  border-color: @quality-rare;
+}
+
+.item-slot.quality-epic {
+  border-color: @quality-epic;
+}
+
+.item-slot.quality-legendary {
+  border-color: @quality-legendary;
+}
+
+/* Item set piece & item with bonus styling */
+.item-set-piece {
+  border-color: @success !important;
+  box-shadow: 0 0 8px rgba(74, 140, 112, 0.7) !important;
+}
+
+.item-with-bonus {
+  border-color: @magic-item !important;
+  box-shadow: 0 0 8px rgba(106, 181, 255, 0.7) !important;
+}
+
+/* When an item has both set and bonus properties */
+.item-with-bonus.item-set-piece {
+  position: relative;
+  z-index: 1;
+  background-color: @bg-primary !important;
+  border-color: transparent !important;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, @magic-item, @success);
+    z-index: -1;
+    border-radius: 4px;
+    animation: gradient-rotate 3s linear infinite;
+  }
+}
+
+@keyframes gradient-rotate {
+  0% {
+    background: linear-gradient(45deg, @magic-item, @success);
+  }
+  25% {
+    background: linear-gradient(135deg, @magic-item, @success);
+  }
+  50% {
+    background: linear-gradient(225deg, @magic-item, @success);
+  }
+  75% {
+    background: linear-gradient(315deg, @magic-item, @success);
+  }
+  100% {
+    background: linear-gradient(45deg, @magic-item, @success);
+  }
+}

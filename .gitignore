@@ -1,0 +1,69 @@
+# Node.js dependencies
+node_modules/
+*/node_modules/
+client/node_modules/
+server/node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Environment variables and configurations
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build and distribution files
+dist/
+build/
+public/dist/
+*.bundle.js
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Game-specific files
+# Temporary files created during development
+client/temp/
+server/temp/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Tiled editor backup files
+*.tmx.bak
+*.tsx.bak
+*.tiled-session
+
+# Debug and test files
+coverage/
+.nyc_output/
+
+# Socket.io debugging logs
+socketio-logs/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,247 @@
+@import "variables.less";
+
+/* Medieval-themed Common UI Elements */
+
+/* Parchment and wood-inspired styles */
+.medieval-header {
+  font-family: "Georgia", serif;
+  color: @text-secondary;
+  .textShadow();
+  letter-spacing: 1px;
+}
+
+/* Message Log */
+.message-log {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+  max-width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.message-item {
+  color: @text-primary;
+  background-color: @transparent-bg-dark;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  .textShadow();
+  .medievalBorder();
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 0 5px rgba(208, 224, 255, 0.1);
+  transition: opacity 0.5s;
+  opacity: 1;
+  pointer-events: none;
+
+  &.error-message {
+    background-color: fade(@danger, 85%);
+    border-color: @danger;
+  }
+}
+
+@media (max-height: 600px) {
+  .message-item {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+/* Confirmation Dialog */
+.confirmation-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  .medievalTextureBg();
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow:
+    0 0 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(208, 224, 255, 0.1);
+  z-index: 2000;
+  color: @text-primary;
+  text-align: center;
+  min-width: 300px;
+  border: 2px solid @border-primary;
+}
+
+.confirmation-message {
+  margin-bottom: 20px;
+  font-family: "Georgia", serif;
+  line-height: 1.4;
+}
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+
+  button {
+    .buttonStyle();
+  }
+}
+
+/* Player health container */
+.player-health-container {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  width: 200px;
+  background-color: @transparent-bg-dark;
+  border: 2px solid @border-primary;
+  border-radius: 4px;
+  padding: 5px;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 0 5px rgba(208, 224, 255, 0.1);
+}
+
+.player-health-bar-wrapper {
+  width: 100%;
+  height: 20px;
+  background-color: @bg-primary;
+  border: 1px solid @border-primary;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  .innerBoxShadow();
+}
+
+.player-health-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, @success, darken(@success, 10%));
+  transition: width 0.3s ease-out;
+
+  &.medium-health {
+    background: linear-gradient(to right, @warning, darken(@warning, 10%));
+  }
+
+  &.low-health {
+    background: linear-gradient(to right, @danger, darken(@danger, 10%));
+  }
+}
+
+.player-health-bar-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: @text-primary;
+  font-size: 12px;
+  font-weight: bold;
+  .textShadow();
+}
+
+/* Damage animation effects */
+.damage-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: fade(@danger, 30%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen-flash {
+  animation: damage-flash 0.3s;
+}
+
+@keyframes damage-flash {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Respawn dialog */
+.respawn-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.respawn-dialog-content {
+  .medievalTextureBg();
+  padding: 30px;
+  border-radius: 8px;
+  width: 400px;
+  border: 2px solid @border-primary;
+  box-shadow:
+    0 0 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(208, 224, 255, 0.1);
+  text-align: center;
+}
+
+.respawn-title {
+  color: @text-highlight;
+  font-family: "Georgia", serif;
+  margin: 0 0 20px 0;
+  .textShadow();
+}
+
+.respawn-message {
+  color: @text-primary;
+  font-family: "Georgia", serif;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.respawn-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.respawn-button {
+  background: linear-gradient(to bottom, lighten(@ui-element, 8%), @ui-element);
+  color: @text-primary;
+  border: 1px solid @border-secondary;
+  padding: 12px 24px;
+  border-radius: 5px;
+  font-family: "Georgia", serif;
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+
+  &:hover {
+    background: linear-gradient(to bottom, lighten(@ui-element, 15%), lighten(@ui-element, 5%));
+    color: @text-highlight;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
+  }
+}

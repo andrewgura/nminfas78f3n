@@ -1,0 +1,41 @@
+// src/styles/map-name.less
+@import "variables.less";
+
+.map-name-label {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background-color: @transparent-bg-dark;
+  color: @text-highlight;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: "Georgia", serif;
+  border: 1px solid @border-primary;
+  .textShadow();
+  .boxShadow();
+  animation: map-name-fade 3s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes map-name-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+}

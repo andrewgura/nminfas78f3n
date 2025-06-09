@@ -1,0 +1,63 @@
+@import "variables.less";
+
+/* Removing original horizontal health bar styles as requested */
+/* Keeping the color definitions and animations for use in the action bar implementation */
+
+/* Health bar colors */
+.health-bar-fill-high {
+  background-color: @success;
+  background: linear-gradient(to right, @success, darken(@success, 10%));
+}
+
+.health-bar-fill-medium {
+  background-color: @warning;
+  background: linear-gradient(to right, @warning, darken(@warning, 10%));
+}
+
+.health-bar-fill-low {
+  background-color: @danger;
+  background: linear-gradient(to right, @danger, darken(@danger, 10%));
+}
+
+.health-bar-fill-very-low {
+  background-color: darken(@danger, 15%);
+  background: linear-gradient(to right, darken(@danger, 10%), darken(@danger, 25%));
+}
+
+/* Resource system styles */
+.resource-container {
+  display: none; /* Hide the original resource container */
+}
+
+/* Health/Resource bar flash animation */
+.health-flash {
+  animation: health-flash 0.3s;
+}
+
+.resource-flash {
+  animation: resource-flash 0.3s;
+}
+
+@keyframes health-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes resource-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}

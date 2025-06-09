@@ -1,0 +1,68 @@
+@import "variables.less";
+
+/* NPC Dialog Styles */
+.npc-dialog-container {
+  position: fixed;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 600px;
+  background-color: @transparent-bg-dark;
+  border: 2px solid @border-primary;
+  border-radius: 5px;
+  padding: 15px;
+  color: @text-primary;
+  font-size: 16px;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.npc-dialog-name {
+  color: @gold-color;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.npc-dialog-text {
+  line-height: 1.5;
+  margin-bottom: 10px;
+  color: @text-primary;
+}
+
+.npc-dialog-instruction {
+  margin-top: 15px;
+  font-size: 14px;
+  color: @text-secondary;
+  text-align: center;
+}
+
+/* NPC Interaction Indicator */
+.npc-interaction-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: @transparent-bg-dark;
+  color: @text-primary;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: float 1.5s ease-in-out infinite;
+}
+
+/* Animation for the interaction indicator */
+@keyframes float {
+  0% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+}

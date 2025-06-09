@@ -1,0 +1,174 @@
+@import "variables.less";
+
+/* Ability Interface Styling */
+.abilities-interface-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: @bg-secondary;
+  border: 2px solid @border-primary;
+  border-radius: 6px;
+  width: 500px;
+  max-height: 70vh;
+  overflow: none;
+  padding-bottom: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  .scrollbarStyle();
+}
+
+.abilities-header {
+  background-color: @bg-tertiary;
+  color: @text-secondary;
+  padding: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  border-bottom: 1px solid @border-primary;
+  margin-bottom: 10px;
+  font-family: "Georgia", serif;
+}
+
+.abilities-content {
+  padding: 0 15px;
+}
+
+.ability-category {
+  margin-bottom: 20px;
+}
+
+.category-header {
+  color: @text-secondary;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid @border-primary;
+  text-transform: capitalize;
+  font-family: "Georgia", serif;
+}
+
+.ability-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ability-slot {
+  width: 80px;
+  height: 80px;
+  background-color: @bg-tertiary;
+  border: 2px solid @border-primary;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  position: relative;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: @accent;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.ability-icon {
+  width: 64px;
+  height: 64px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.ability-number {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 12px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+}
+
+.ability-slot.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.ability-slot.on-action-bar {
+  border-color: @text-highlight;
+  box-shadow: 0 0 10px rgba(106, 181, 255, 0.3);
+}
+
+/* For action slots to highlight during drag */
+.action-slot.valid-target {
+  border-color: @success !important;
+  box-shadow: 0 0 10px rgba(74, 140, 112, 0.7) !important;
+}
+
+.action-slot.invalid-target {
+  border-color: @danger !important;
+  box-shadow: 0 0 10px rgba(176, 64, 80, 0.7) !important;
+  cursor: not-allowed;
+}
+
+/* Drag ghost image */
+.ability-drag-image {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 10000;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
+.ability-tooltip {
+  position: absolute;
+  z-index: 1100;
+  background-color: @bg-secondary;
+  border: 2px solid @border-primary;
+  border-radius: 4px;
+  padding: 10px;
+  width: 250px;
+  color: @text-secondary;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-family: "Georgia", serif;
+  font-size: 14px;
+  display: none;
+}
+
+.ability-tooltip-title {
+  color: @text-highlight;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid @border-primary;
+  padding-bottom: 5px;
+}
+
+.ability-tooltip-desc {
+  margin-bottom: 8px;
+  color: @text-primary;
+  line-height: 1.4;
+}
+
+.ability-tooltip-stats {
+  color: @text-secondary;
+  font-style: italic;
+  font-size: 13px;
+}

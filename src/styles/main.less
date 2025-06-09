@@ -1,0 +1,122 @@
+@import "variables.less";
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: @bg-primary;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  color: @text-primary;
+  overflow: hidden;
+}
+
+/* Play area */
+html canvas {
+  width: 100%;
+}
+
+#game-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* App layout */
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.game-container {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
+
+.ui-sidebar {
+  width: 220px;
+  height: 100%;
+  background-color: @bg-secondary;
+  background-image: @bg-texture;
+  background-blend-mode: overlay;
+  border-left: 2px solid @border-primary;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
+  padding: 5px;
+  box-sizing: border-box;
+  .scrollbarStyle();
+
+  /* Ensure children don't cause horizontal overflow */
+  & > * {
+    max-width: 100%;
+  }
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0 2px; /* Reduce side padding */
+  box-sizing: border-box;
+  max-height: calc(100vh - 80px); /* Ensure it doesn't overflow */
+}
+
+.ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.ui-overlay > * {
+  pointer-events: auto;
+}
+
+.bottom-ui {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Cursor position display (debug) */
+#cursor-position-display {
+  position: fixed;
+  left: 10px;
+  top: 55px;
+  background-color: @transparent-bg-dark;
+  color: @text-primary;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  border: 1px solid @border-primary;
+  .boxShadow();
+  transition: opacity 0.3s ease;
+
+  &.visible {
+    opacity: 1;
+  }
+
+  &.hidden {
+    opacity: 0;
+  }
+}

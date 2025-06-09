@@ -1,0 +1,117 @@
+@import "variables.less";
+
+/* Ability animations and effects */
+
+.ability-animation-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Whirlwind effect */
+.whirlwind-effect {
+  position: absolute;
+  border-radius: 50%;
+  animation: whirlwind-spin 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes whirlwind-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Sword slash effect */
+.sword-slash-effect {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(106, 181, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform-origin: left center;
+  pointer-events: none;
+  animation: sword-slash 0.3s ease-out;
+}
+
+@keyframes sword-slash {
+  0% {
+    transform: scaleX(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scaleX(1) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+/* Damage number floating text */
+.damage-text {
+  position: absolute;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  color: @danger;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  animation: float-up 1s ease-out;
+  z-index: 1001;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+/* Ability cooldown overlay in actionbar */
+.action-slot.on-cooldown {
+  .action-slot-icon {
+    filter: grayscale(60%) brightness(50%);
+  }
+
+  .action-slot-cooldown {
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+  }
+}
+
+/* Hit effect flash */
+.hit-flash {
+  animation: hit-flash 0.2s ease-out;
+}
+
+@keyframes hit-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(2);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}

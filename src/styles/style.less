@@ -1,0 +1,81 @@
+// Main style.less file - imports all components
+@import "variables.less";
+
+// Core styles
+@import "main.less";
+@import "ui-common.less";
+
+// Game UI elements
+@import "healthbar.less";
+@import "actionbar.less";
+@import "inventory.less";
+@import "equipment.less";
+@import "skills.less";
+@import "quests.less";
+@import "abilities.less";
+@import "navbar.less";
+@import "debug.less";
+@import "map-name.less";
+@import "resources.less";
+@import "creatures.less";
+
+// Dialog and panel components
+@import "shop.less";
+@import "npc-dialog.less";
+@import "abilities-interface.less";
+@import "set-collection.less";
+
+// Global overrides and utilities
+.ui-icon {
+  color: @text-secondary;
+
+  &:hover {
+    color: @text-highlight;
+  }
+}
+
+// Dark fantasy theme-specific tweaks
+body {
+  background-color: @bg-primary;
+
+  &.game-paused {
+    &::after {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 90;
+    }
+  }
+}
+
+// Canvas adjustments for dark theme
+canvas {
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+}
+
+// Quality color overrides
+.quality-common {
+  color: #a0a0a0;
+}
+.quality-uncommon {
+  color: #5aff5a;
+}
+.quality-rare {
+  color: #5a80ff;
+}
+.quality-epic {
+  color: #d15aff;
+}
+.quality-legendary {
+  color: #ff9d5a;
+}
+
+// Custom scrollbars for the entire game
+html {
+  .scrollbarStyle();
+}

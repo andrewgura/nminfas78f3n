@@ -1,0 +1,138 @@
+@import "variables.less";
+
+/* Debug Menu Styles */
+
+.debug-menu {
+  position: absolute;
+  top: 50px;
+  right: 50px;
+  width: 300px;
+  background-color: @transparent-bg-dark;
+  color: @text-primary;
+  border: 1px solid @border-primary;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  font-family: monospace;
+  font-size: 12px;
+  user-select: none;
+}
+
+.debug-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: @bg-tertiary;
+  border-bottom: 1px solid @border-primary;
+  border-radius: 4px 4px 0 0;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    color: @success;
+  }
+}
+
+.debug-menu-close {
+  background: none;
+  border: none;
+  color: @text-primary;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+
+  &:hover {
+    color: @danger;
+  }
+}
+
+.debug-menu-content {
+  padding: 10px;
+  max-height: 80vh;
+  overflow-y: auto;
+  .scrollbarStyle();
+}
+
+.debug-menu-section {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid @border-primary;
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: @success;
+  }
+}
+
+.debug-menu-option {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.debug-btn {
+  min-width: 100px;
+  padding: 4px 8px;
+  background-color: @ui-element;
+  color: @text-primary;
+  border: 1px solid @border-primary;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: monospace;
+  font-size: 11px;
+  margin-right: 10px;
+
+  &:hover {
+    background-color: lighten(@ui-element, 10%);
+  }
+
+  &.active {
+    background-color: darken(@success, 10%);
+    border-color: @success;
+  }
+}
+
+.debug-menu-description {
+  color: @text-secondary;
+  font-size: 11px;
+}
+
+/* Debug overlay styles */
+.debug-stats {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background-color: @transparent-bg-dark;
+  color: @success;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Debug label styles */
+.debug-entity-label {
+  background-color: @transparent-bg-dark;
+  color: @text-primary;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 10px;
+  pointer-events: none;
+  white-space: nowrap;
+}

@@ -1,0 +1,697 @@
+@import "variables.less";
+
+/* Inventory container */
+.inventory-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 5px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Inventory header with pagination info */
+.inventory-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+
+.inventory-page-info {
+  font-size: 11px;
+  color: @text-secondary;
+  text-align: center;
+  margin-top: 2px;
+  font-family: "Georgia", serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inventory slot styling */
+.inventory-slot {
+  width: 40px;
+  height: 40px;
+  background-color: @bg-primary;
+  border: 2px solid @border-primary;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  .innerBoxShadow();
+  .transition();
+  box-sizing: border-box;
+
+  @media (max-width: 1200px) {
+    width: 36px;
+    height: 36px;
+  }
+
+  @media (max-width: 1000px) {
+    width: 32px;
+    height: 32px;
+  }
+
+  &:hover {
+    border-color: @accent;
+    box-shadow:
+      0 0 5px rgba(126, 145, 181, 0.5),
+      inset 0 0 5px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Inventory slots grid */
+.inventory-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px;
+  .medievalTextureBg();
+  border-radius: 4px;
+  .medievalBorder();
+  .innerBoxShadow();
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Inventory navigation */
+.inventory-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding: 0 5px;
+  height: 34px; /* Fixed height to prevent layout shifts */
+}
+
+.inventory-nav-button {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(to bottom, lighten(@ui-element, 8%), @ui-element);
+  border: 1px solid @border-secondary;
+  border-radius: 4px;
+  color: @text-primary;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+
+  &:hover:not(.disabled) {
+    background: linear-gradient(to bottom, lighten(@ui-element, 15%), lighten(@ui-element, 5%));
+    color: @text-highlight;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active:not(.disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(to bottom, darken(@ui-element, 5%), darken(@ui-element, 10%));
+    color: @text-secondary;
+    box-shadow: none;
+  }
+
+  /* Add a subtle glow when not disabled */
+  &:not(.disabled)::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px;
+    box-shadow: 0 0 3px rgba(106, 181, 255, 0);
+    transition: box-shadow 0.2s ease;
+  }
+
+  &:hover:not(.disabled)::before {
+    box-shadow: 0 0 3px rgba(106, 181, 255, 0.7);
+  }
+}
+
+.inventory-total-info {
+  font-size: 11px;
+  color: @text-secondary;
+  font-family: "Georgia", serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inventory item glow effect */
+.inventory-item-glow {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px 3px rgba(106, 181, 255, 0.5);
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+/* Game item tooltip base styles - improved */
+.game-item-tooltip {
+  background-color: @bg-secondary;
+  background-image: @bg-texture;
+  background-blend-mode: overlay;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(61, 77, 107, 0.8);
+  padding: 12px;
+  position: fixed;
+  z-index: 1000;
+  min-width: 220px;
+  max-width: 320px;
+  width: auto;
+  backdrop-filter: blur(3px);
+  color: @text-primary;
+  font-family: "Georgia", serif;
+  transition: opacity 0.2s ease;
+  border: 1px solid @border-primary;
+
+  /* Ensure tooltips don't overflow viewport */
+  max-height: 80vh;
+  overflow-y: auto;
+  .scrollbarStyle();
+
+  /* Ensure tooltip is contained within viewport */
+  &.right-edge {
+    right: 225px;
+    left: auto !important;
+  }
+
+  &.bottom-edge {
+    bottom: 10px;
+    top: auto !important;
+  }
+
+  /* Improved responsive behavior */
+  @media (max-width: 768px) {
+    max-width: 280px;
+    min-width: 200px;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  @media (max-height: 600px) {
+    max-height: 70vh;
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+.item-tooltip-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  color: @text-highlight;
+  font-weight: bold;
+  margin-bottom: 8px;
+  .textShadow();
+  font-size: 16px;
+  display: block;
+}
+
+.item-tooltip-stats {
+  color: @text-secondary;
+  font-weight: bold;
+}
+
+.item-tooltip-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(61, 77, 107, 0.6), transparent);
+  margin: 12px 0 10px 0;
+}
+
+.item-tooltip-description {
+  color: @text-primary;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.item-tooltip-instruction {
+  font-size: 10px;
+  color: #7e91b5;
+  margin-top: 12px;
+  font-style: italic;
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(61, 77, 107, 0.3);
+}
+
+/* Enhanced stat row styling */
+.stat-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 2px 0;
+}
+
+.stat-icon {
+  width: 18px;
+  font-size: 12px;
+  margin-right: 8px;
+  text-align: center;
+}
+
+.stat-label {
+  flex: 1;
+  font-size: 12px;
+  color: #a0b5dd;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 30px;
+  text-align: right;
+}
+
+.stat-value.positive {
+  color: #4a8c70; /* Green for positive values like regen */
+}
+
+.stat-value.neutral {
+  color: #d0e0ff; /* Default text color for neutral stats */
+}
+
+.stat-value.negative {
+  color: #b04050; /* Red for negative values */
+}
+
+.resources-container {
+  background: linear-gradient(135deg, @bg-tertiary 0%, darken(@bg-tertiary, 5%) 100%);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid @border-primary;
+  color: @text-primary;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(208, 224, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: linear-gradient(to right, darken(@bg-tertiary, 5%), @bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid @border-primary;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(to right, darken(@bg-tertiary, 2%), lighten(@bg-tertiary, 3%));
+    border-color: @border-secondary;
+  }
+}
+
+.resource-gold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.resource-capacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.resource-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.resource-label {
+  font-size: 11px;
+  color: @text-secondary;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 45px;
+}
+
+.resource-value {
+  font-family: "Georgia", serif;
+  font-weight: bold;
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin-left: auto;
+}
+
+/* Gold specific styling */
+.gold-container .resource-value {
+  color: @gold-color;
+}
+
+/* Capacity specific styling */
+.capacity-container .resource-value {
+  color: @text-primary;
+}
+
+.capacity-container .resource-value.full {
+  color: @danger;
+}
+
+.capacity-container .resource-value.warning {
+  color: @warning;
+}
+
+/* Item tooltip header with image */
+.item-tooltip-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.item-tooltip-image-container {
+  width: 48px;
+  height: 48px;
+  margin-right: 12px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid @border-primary;
+  background-color: @bg-primary;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.item-tooltip-image {
+  max-width: 40px;
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.item-tooltip-title-section {
+  flex-grow: 1;
+}
+
+/* Item quality indicators */
+.magic-item {
+  box-shadow: 0 0 8px rgba(106, 181, 255, 0.7);
+}
+
+.item-tooltip-bonuses {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(61, 77, 107, 0.4);
+}
+
+.bonus-title {
+  font-weight: bold;
+  color: #6ab5ff;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.bonus-stat {
+  margin-left: 12px;
+  font-size: 11px;
+  color: #6ab5ff;
+  margin-bottom: 3px;
+}
+
+.tooltip-bonus-section {
+  margin-top: 8px;
+  padding-top: 5px;
+}
+
+.tooltip-bonus-title {
+  font-weight: bold;
+  color: @text-primary;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.tooltip-bonus-item {
+  margin-left: 12px;
+  font-size: 12px;
+  color: @magic-item;
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+
+/* Enhanced tooltip sections */
+.tooltip-set-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(61, 77, 107, 0.4);
+}
+
+.tooltip-set-title {
+  font-weight: bold;
+  color: #2ecc71;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.tooltip-set-count {
+  font-size: 11px;
+  color: #7e91b5;
+  margin-bottom: 8px;
+}
+
+/* Product-specific tooltip styling */
+.product-tooltip {
+  background: linear-gradient(135deg, @bg-secondary 0%, darken(@bg-secondary, 3%) 100%);
+  max-width: 300px; /* Slightly smaller for products */
+
+  .item-tooltip-divider {
+    background: linear-gradient(to right, transparent, rgba(204, 122, 0, 0.6), transparent);
+  }
+}
+
+.product-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #ff9d5a, #cc7a00);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  animation: product-pulse 2s infinite;
+}
+
+@keyframes product-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.product-category {
+  color: #cc7a00 !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.product-stat {
+  background: linear-gradient(to right, rgba(255, 157, 90, 0.08), transparent);
+  padding: 3px 6px;
+  margin: 2px 0;
+  border-radius: 3px;
+  border-left: 2px solid #ff9d5a;
+
+  .stat-icon {
+    color: #ff9d5a;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  }
+
+  .stat-label {
+    color: #d0a070;
+    font-weight: 600;
+  }
+
+  .stat-value.gold {
+    color: #ffd280;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.product-description {
+  color: #d0b090;
+  background: rgba(255, 157, 90, 0.05);
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 122, 0, 0.2);
+  font-style: italic;
+  line-height: 1.4;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.product-info-section {
+  margin-top: 10px;
+  padding: 8px;
+  background: linear-gradient(135deg, rgba(255, 157, 90, 0.12), rgba(204, 122, 0, 0.08));
+  border-radius: 5px;
+  border: 1px solid rgba(204, 122, 0, 0.25);
+  box-shadow: inset 0 1px 2px rgba(255, 157, 90, 0.1);
+}
+
+.product-info-title {
+  font-weight: bold;
+  color: #ff9d5a;
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-info-text {
+  font-size: 10px;
+  color: #d0b090;
+  line-height: 1.3;
+  font-style: italic;
+}
+
+.product-instruction {
+  background: linear-gradient(to right, rgba(255, 157, 90, 0.08), rgba(204, 122, 0, 0.04));
+  border-top: 1px solid rgba(204, 122, 0, 0.25);
+  color: #cc7a00;
+  font-weight: 500;
+  padding: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 10px;
+  margin-top: 8px;
+  border-radius: 0 0 6px 6px;
+  text-align: center;
+}
+
+/* Enhance existing stat values for products */
+.product-tooltip .stat-value.positive {
+  color: #4a8c70;
+  font-weight: bold;
+}
+
+.product-tooltip .stat-value.neutral {
+  color: #d0b090;
+  font-weight: 600;
+}
+
+/* Product item slot styling (for inventory slots containing products) */
+.item-slot.product-item {
+  border-color: #cc7a00 !important;
+  box-shadow: 0 0 6px rgba(255, 157, 90, 0.4) !important;
+
+  &:hover {
+    box-shadow: 0 0 10px rgba(255, 157, 90, 0.6) !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-height: 600px) {
+  .inventory-slot {
+    width: 30px;
+    height: 30px;
+  }
+
+  .game-item-tooltip {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .item-name {
+    font-size: 14px;
+  }
+
+  .inventory-nav-button {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  .inventory-page-info,
+  .inventory-total-info {
+    font-size: 10px;
+  }
+
+  .product-info-section {
+    padding: 6px;
+    margin-top: 8px;
+  }
+
+  .product-info-title {
+    font-size: 10px;
+  }
+
+  .product-info-text {
+    font-size: 9px;
+  }
+
+  .product-indicator {
+    width: 14px;
+    height: 14px;
+    font-size: 7px;
+  }
+
+  .product-description {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .product-instruction {
+    padding: 6px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-item-tooltip {
+    max-width: 250px;
+    min-width: 180px;
+  }
+
+  .product-tooltip {
+    max-width: 240px;
+  }
+}

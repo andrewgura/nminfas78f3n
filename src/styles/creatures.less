@@ -1,0 +1,464 @@
+@import "variables.less";
+
+/* Creatures Window Styles */
+.creatures-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 900px;
+  .medievalTextureBg();
+  border-radius: 6px;
+  box-shadow:
+    0 0 20px rgba(0, 0, 0, 0.7),
+    inset 0 0 10px rgba(208, 224, 255, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Georgia", serif;
+  color: @text-primary;
+  border: 2px solid @border-primary;
+}
+
+.creatures-header {
+  position: relative;
+  height: 50px;
+  background-color: @bg-tertiary;
+  background-image: @bg-texture;
+  background-blend-mode: overlay;
+  border-bottom: 2px solid @border-primary;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1001;
+
+  h2 {
+    margin: 0;
+    color: @text-highlight;
+    font-family: "Georgia", serif;
+    .textShadow();
+    letter-spacing: 1px;
+  }
+
+  .creatures-close-button {
+    background: none;
+    border: none;
+    color: @text-primary;
+    font-size: 20px;
+    cursor: pointer;
+    .transition();
+
+    &:hover {
+      color: @text-highlight;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.creatures-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Navigation Panel */
+.creatures-navigation {
+  width: 300px;
+  background-color: @bg-primary;
+  border-right: 2px solid @border-primary;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  h3 {
+    margin: 0;
+    padding: 15px;
+    background-color: @bg-tertiary;
+    color: @text-highlight;
+    border-bottom: 1px solid @border-primary;
+    font-size: 16px;
+    .textShadow();
+    text-align: center;
+  }
+}
+
+.creature-nav-list {
+  flex: 1;
+  overflow-y: auto;
+  .scrollbarStyle();
+}
+
+.creature-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid @border-primary;
+  cursor: pointer;
+  .transition();
+
+  &:hover {
+    background-color: @transparent-bg-medium;
+  }
+
+  &.selected {
+    background-color: @bg-tertiary;
+    border-left: 4px solid @text-highlight;
+  }
+}
+
+.creature-nav-image {
+  width: 48px;
+  height: 48px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: @bg-secondary;
+  border: 1px solid @border-primary;
+  border-radius: 4px;
+  .innerBoxShadow();
+
+  img {
+    max-width: 40px;
+    max-height: 40px;
+    object-fit: contain;
+  }
+}
+
+.creature-nav-info {
+  flex: 1;
+}
+
+.creature-nav-name {
+  font-weight: bold;
+  color: @text-primary;
+  font-size: 14px;
+  margin-bottom: 3px;
+  .textShadow();
+}
+
+.creature-nav-category {
+  font-size: 12px;
+  color: @text-secondary;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Main Content Panel */
+.creatures-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px; /* Reduced padding */
+  .scrollbarStyle();
+}
+
+.creature-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Reduced gap */
+  min-height: 100%; /* Ensure full height usage */
+}
+
+.creature-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 15px; /* Reduced padding */
+  background-color: @transparent-bg-dark;
+  border: 1px solid @border-primary;
+  border-radius: 6px;
+  .innerBoxShadow();
+}
+
+.creature-image-large {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: @bg-primary;
+  border: 2px solid @border-primary;
+  border-radius: 6px;
+  .innerBoxShadow();
+
+  img {
+    max-width: 80px;
+    max-height: 80px;
+    object-fit: contain;
+  }
+}
+
+.creature-basic-info {
+  flex: 1;
+}
+
+.creature-name {
+  margin: 0 0 8px 0;
+  color: @text-highlight;
+  font-size: 24px;
+  font-weight: bold;
+  .textShadow();
+}
+
+.creature-category {
+  font-size: 14px;
+  color: @text-secondary;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.creature-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(61, 77, 107, 0.3);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.stat-label {
+  font-size: 14px;
+  color: @text-secondary;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 14px;
+  color: @text-primary;
+  font-weight: bold;
+  .textShadow();
+}
+
+/* Loot Section */
+.creature-loot-section {
+  padding: 15px; /* Reduced padding */
+  background-color: @transparent-bg-dark;
+  border: 1px solid @border-primary;
+  border-radius: 6px;
+  .innerBoxShadow();
+
+  h4 {
+    margin: 0 0 12px 0; /* Reduced margin */
+    color: @text-highlight;
+    font-size: 18px;
+    .textShadow();
+    border-bottom: 1px solid @border-primary;
+    padding-bottom: 6px; /* Reduced padding */
+  }
+}
+
+.loot-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loot-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(26, 31, 46, 0.5);
+  border: 1px solid @border-primary;
+  border-radius: 4px;
+  .transition();
+
+  &:hover {
+    background-color: rgba(37, 44, 61, 0.7);
+    border-color: @border-secondary;
+  }
+}
+
+.loot-name {
+  font-size: 14px;
+  color: @text-primary;
+  font-weight: 500;
+}
+
+.loot-chance {
+  font-size: 12px;
+  color: @gold-color;
+  font-weight: bold;
+  .textShadow();
+}
+
+/* Progress Section */
+.creature-progress-section {
+  padding: 15px; /* Reduced padding */
+  background-color: @transparent-bg-dark;
+  border: 1px solid @border-primary;
+  border-radius: 6px;
+  .innerBoxShadow();
+
+  h4 {
+    margin: 0 0 12px 0; /* Reduced margin */
+    color: @text-highlight;
+    font-size: 18px;
+    .textShadow();
+    border-bottom: 1px solid @border-primary;
+    padding-bottom: 6px; /* Reduced padding */
+  }
+}
+
+.progress-bar-container {
+  margin-bottom: 10px;
+}
+
+.progress-bar-background {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  background-color: @bg-primary;
+  border: 1px solid @border-primary;
+  border-radius: 10px;
+  overflow: hidden;
+  .innerBoxShadow();
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, @success, darken(@success, 10%));
+  border-radius: 10px;
+  .transition();
+}
+
+.progress-milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 2px solid @bg-primary;
+  background-color: @border-primary;
+  color: @text-primary;
+  z-index: 2;
+
+  &.achieved {
+    background-color: @success;
+    color: white;
+    border-color: @success;
+    box-shadow: 0 0 8px rgba(74, 140, 112, 0.6);
+  }
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 14px;
+  color: @text-secondary;
+  margin-bottom: 15px;
+}
+
+.milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* Reduced gap */
+  margin-bottom: 15px; /* Added bottom margin for spacing */
+}
+
+.milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: rgba(26, 31, 46, 0.3);
+  border: 1px solid @border-primary;
+  border-radius: 4px;
+  .transition();
+
+  &.achieved {
+    background-color: rgba(74, 140, 112, 0.1);
+    border-color: @success;
+
+    .milestone-icon {
+      color: @success;
+    }
+
+    .milestone-kills {
+      color: @success;
+    }
+  }
+}
+
+.milestone-icon {
+  font-size: 14px;
+  font-weight: bold;
+  color: @text-secondary;
+  width: 16px;
+  text-align: center;
+}
+
+.milestone-kills {
+  font-size: 14px;
+  font-weight: bold;
+  color: @text-primary;
+  min-width: 50px;
+}
+
+.milestone-reward {
+  font-size: 13px;
+  color: @text-secondary;
+  flex: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .creatures-container {
+    width: 90%;
+    height: 80%;
+  }
+
+  .creatures-navigation {
+    width: 250px;
+  }
+
+  .creature-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .creature-image-large {
+    width: 80px;
+    height: 80px;
+
+    img {
+      max-width: 64px;
+      max-height: 64px;
+    }
+  }
+}
+
+@media (max-height: 600px) {
+  .creatures-container {
+    height: 90%;
+  }
+
+  .creature-header {
+    padding: 15px;
+  }
+
+  .creature-progress-section,
+  .creature-loot-section {
+    padding: 15px;
+  }
+}
