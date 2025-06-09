@@ -74,6 +74,7 @@ export interface ItemSetBonuses {
   archery?: number;
   shield?: number;
   moveSpeed?: number;
+  attackSpeed?: number;
   healthRegen?: number;
   manaRegen?: number;
   capacity?: number;
