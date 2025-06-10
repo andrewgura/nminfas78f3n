@@ -190,7 +190,8 @@ const ITEM_DATA: Record<string, ItemData> = {
     armor: 2,
     set: ItemSets.SKELETAL_SET,
     setBonus: {
-      regen: 2,
+      manaRegen: 1,
+      healthRegen: 1,
     },
     bonusSkills: ["boneSpike"],
     weight: 10,

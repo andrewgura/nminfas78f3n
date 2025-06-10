@@ -17,6 +17,35 @@ import {
   calculateLevelFromExperience,
 } from "@/utils/SkillProgressionFormula";
 
+// Calculate stats interface
+export interface CalculatedStats {
+  // Total stats including base + equipment + skills
+  totalHealth: number;
+  totalMana: number;
+  totalPower: number;
+  totalArmor: number;
+  totalMoveSpeed: number; // Display value (higher = faster)
+  actualMoveSpeed: number; // Internal value (lower = faster)
+  totalAttackSpeed: number;
+  totalHealthRegen: number;
+  totalManaRegen: number;
+  totalCapacity: number;
+
+  // Equipment bonuses only
+  equipmentBonuses: {
+    health: number;
+    mana: number;
+    power: number;
+    armor: number;
+    moveSpeed: number;
+    attackSpeed: number;
+    healthRegen: number;
+    manaRegen: number;
+    capacity: number;
+    melee: number;
+  };
+}
+
 // Define the store state structure
 export interface GameState {
   // Player properties
@@ -25,7 +54,7 @@ export interface GameState {
     maxHealth: number;
     lastAttackTime: number;
     experience: number;
-    equipment: PlayerCharacterEquipment; // Now stores ItemInstance instead of ItemData
+    equipment: PlayerCharacterEquipment;
     inventory: ItemInstance[];
     skills: {
       [key: string]: {
@@ -39,6 +68,9 @@ export interface GameState {
     currentCapacity: number;
     teleportPosition?: { x: number; y: number };
   };
+
+  // Calculated stats
+  calculatedStats: CalculatedStats;
 
   // Game state
   quests: {
@@ -60,7 +92,7 @@ export interface GameState {
     [chestId: string]: number; // Timestamp when opened
   };
 
-  // System references - this allows Phaser scenes to access services
+  // System references
   systems?: Record<string, any>;
 
   // Methods
@@ -82,7 +114,138 @@ export interface GameState {
   updatePlayerCurrentCapacity: (amount: number) => void;
   isChestOpen: (chestId: string) => boolean;
   setChestOpen: (chestId: string) => void;
+  recalculateStats: () => void;
 }
+
+// Helper functions for calculating stats
+const calculateEquipmentBonuses = (equipment: PlayerCharacterEquipment) => {
+  const bonuses = {
+    health: 0,
+    mana: 0,
+    power: 0,
+    armor: 0,
+    moveSpeed: 0,
+    attackSpeed: 0,
+    healthRegen: 0,
+    manaRegen: 0,
+    capacity: 0,
+    melee: 0,
+  };
+
+  // Track equipped sets for set bonuses
+  const equippedSets: Record<string, ItemInstance[]> = {};
+
+  Object.values(equipment).forEach((itemInstance) => {
+    if (!itemInstance) return;
+
+    // Get combined stats (base + bonuses) - this already includes bonusStats
+    const itemData = ItemInstanceManager.getCombinedStats(itemInstance);
+    if (itemData) {
+      bonuses.power += itemData.power || 0;
+      bonuses.armor += itemData.armor || 0;
+      bonuses.healthRegen += itemData.hpRegen || 0;
+      bonuses.manaRegen += itemData.mpRegen || 0;
+      bonuses.health += itemData.health || 0;
+      bonuses.mana += itemData.mana || 0;
+      bonuses.moveSpeed += itemData.moveSpeed || 0;
+      bonuses.attackSpeed += itemData.attackSpeed || 0;
+      bonuses.capacity += itemData.capacity || 0;
+      bonuses.melee += itemData.melee || 0;
+
+      // Track sets - store the actual item instances
+      if (itemData.set) {
+        if (!equippedSets[itemData.set]) {
+          equippedSets[itemData.set] = [];
+        }
+        equippedSets[itemData.set].push(itemInstance);
+      }
+    }
+  });
+
+  // Apply set bonuses for sets with 2+ pieces
+  Object.entries(equippedSets).forEach(([setName, items]) => {
+    if (items.length >= 2) {
+      // Apply set bonus from each equipped set piece
+      items.forEach((item) => {
+        const itemData = ItemInstanceManager.getCombinedStats(item);
+        if (itemData?.setBonus) {
+          bonuses.power += itemData.setBonus.power || 0;
+          bonuses.armor += itemData.setBonus.armor || 0;
+          bonuses.health += itemData.setBonus.health || 0;
+          bonuses.mana += itemData.setBonus.mana || 0;
+          bonuses.moveSpeed += itemData.setBonus.moveSpeed || 0;
+          bonuses.attackSpeed += itemData.setBonus.attackSpeed || 0;
+          bonuses.healthRegen += itemData.setBonus.healthRegen || 0;
+          bonuses.manaRegen += itemData.setBonus.manaRegen || 0;
+          bonuses.capacity += itemData.setBonus.capacity || 0;
+          bonuses.melee += itemData.setBonus.melee || 0;
+        }
+      });
+    }
+  });
+
+  return bonuses;
+};
+
+const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): CalculatedStats => {
+  const skills = playerCharacter.skills;
+
+  // Base values from skills and player stats
+  const baseHealth = playerCharacter.maxHealth;
+  const baseMana = (skills.mana?.level || 10) * 10;
+  const basePower = 0;
+  const baseArmor = 0;
+  const baseCapacity = playerCharacter.maxCapacity;
+  const baseHealthRegen = skills.healthRegen?.level || 1;
+  const baseManaRegen = skills.manaRegen?.level || 1;
+  const baseAttackSpeed = skills.attackSpeed?.level || 1;
+
+  // Move speed calculation (internal vs display)
+  const moveSpeedLevel = skills.moveSpeed?.level || 1;
+  const baseMoveSpeedInternal = 100 - (moveSpeedLevel - 1) * 2; // Lower = faster
+  const actualMoveSpeed = Math.max(10, baseMoveSpeedInternal + equipmentBonuses.moveSpeed);
+  const displayMoveSpeed = Math.max(1, moveSpeedLevel + Math.abs(equipmentBonuses.moveSpeed / 10));
+
+  return {
+    totalHealth: baseHealth + equipmentBonuses.health,
+    totalMana: baseMana + equipmentBonuses.mana,
+    totalPower: basePower + equipmentBonuses.power, // 0 + equipment power
+    totalArmor: baseArmor + equipmentBonuses.armor, // 0 + equipment armor
+    totalMoveSpeed: displayMoveSpeed,
+    actualMoveSpeed: actualMoveSpeed,
+    totalAttackSpeed: baseAttackSpeed + equipmentBonuses.attackSpeed,
+    totalHealthRegen: baseHealthRegen + equipmentBonuses.healthRegen,
+    totalManaRegen: baseManaRegen + equipmentBonuses.manaRegen,
+    totalCapacity: baseCapacity + equipmentBonuses.capacity,
+    equipmentBonuses,
+  };
+};
+
+// Initial calculated stats
+const initialCalculatedStats: CalculatedStats = {
+  totalHealth: 2000,
+  totalMana: 100,
+  totalPower: 0,
+  totalArmor: 0,
+  totalMoveSpeed: 1,
+  actualMoveSpeed: 100,
+  totalAttackSpeed: 1,
+  totalHealthRegen: 1,
+  totalManaRegen: 1,
+  totalCapacity: 40,
+  equipmentBonuses: {
+    health: 0,
+    mana: 0,
+    power: 0,
+    armor: 0,
+    moveSpeed: 0,
+    attackSpeed: 0,
+    healthRegen: 0,
+    manaRegen: 0,
+    capacity: 0,
+    melee: 0,
+  },
+};
 
 // Initial state
 const initialState = {
@@ -98,11 +261,10 @@ const initialState = {
       helmet: null,
       amulet: null,
       armor: null,
-    } as PlayerCharacterEquipment, // Now properly typed for ItemInstance
+    } as PlayerCharacterEquipment,
     inventory: [
-      // Using item instances instead of just template IDs
       ItemInstanceManager.createItemInstance("sword1"),
-      ItemInstanceManager.createItemInstance("greatSword", { power: 1 }), // Great Sword with +1 power
+      ItemInstanceManager.createItemInstance("greatSword", { power: 1 }),
       ItemInstanceManager.createItemInstance("woodenStaff"),
       ItemInstanceManager.createItemInstance("twigBow"),
       ItemInstanceManager.createItemInstance("boneClub"),
@@ -111,23 +273,40 @@ const initialState = {
       ItemInstanceManager.createItemInstance("skeletalMedallion"),
       ItemInstanceManager.createItemInstance("boneShield"),
       ItemInstanceManager.createItemInstance("skeletalArmor"),
-      // Add some food items with quantity
       ItemInstanceManager.createFoodInstance("eggs", 5),
       ItemInstanceManager.createFoodInstance("chickenLegs", 3),
       ItemInstanceManager.createFoodInstance("dirtyFish", 2),
       ItemInstanceManager.createProductInstance("shinySkull", 2),
     ],
     skills: {
+      // Main combat skills
       playerLevel: { level: 1, experience: 0, maxExperience: 100 },
       meleeWeapons: { level: 1, experience: 0, maxExperience: 15 },
       archery: { level: 1, experience: 0, maxExperience: 15 },
       magic: { level: 1, experience: 0, maxExperience: 15 },
       shield: { level: 1, experience: 0, maxExperience: 20 },
+
+      // Additional skills
+      power: { level: 1, experience: 0, maxExperience: 15 },
+      armor: { level: 1, experience: 0, maxExperience: 20 },
+
+      // Regeneration skills
+      healthRegen: { level: 1, experience: 0, maxExperience: 15 },
+      manaRegen: { level: 1, experience: 0, maxExperience: 15 },
+
+      // Movement and speed skills
+      moveSpeed: { level: 1, experience: 0, maxExperience: 15 },
+      attackSpeed: { level: 1, experience: 0, maxExperience: 15 },
+
+      // Utility skills
+      capacity: { level: 1, experience: 0, maxExperience: 15 },
+      mana: { level: 10, experience: 0, maxExperience: 15 },
     },
     gold: 100,
     maxCapacity: 40,
     currentCapacity: 10,
   },
+  calculatedStats: initialCalculatedStats,
   quests: {
     active: [],
     completed: [],
@@ -194,7 +373,6 @@ export const useGameStore = create<GameState>()(
 
     updatePlayerLevel: (level) => {
       set((state) => {
-        // Update the playerLevel skill
         const updatedSkills = {
           ...state.playerCharacter.skills,
           playerLevel: {
@@ -203,25 +381,53 @@ export const useGameStore = create<GameState>()(
           },
         };
 
-        return {
+        const newState = {
           playerCharacter: {
             ...state.playerCharacter,
             skills: updatedSkills,
           },
         };
+
+        // Recalculate stats
+        const equipmentBonuses = calculateEquipmentBonuses(state.playerCharacter.equipment);
+        const calculatedStats = calculateTotalStats(newState.playerCharacter, equipmentBonuses);
+
+        eventBus.emit("playerCharacter.level.changed", level);
+        eventBus.emit("player.stats.updated", calculatedStats);
+
+        return {
+          ...newState,
+          calculatedStats,
+        };
       });
-      eventBus.emit("playerCharacter.level.changed", level);
     },
 
-    // Equipment - UPDATED to handle ItemInstance
+    // Equipment - handles ItemInstance
     setPlayerCharacterEquipment: (equipment, source = "system") => {
-      set((state) => ({
-        playerCharacter: {
-          ...state.playerCharacter,
-          equipment, // equipment is now PlayerCharacterEquipment with ItemInstance
-        },
-      }));
-      eventBus.emit("equipment.changed", { equipment, source });
+      set((state) => {
+        const newState = {
+          playerCharacter: {
+            ...state.playerCharacter,
+            equipment,
+          },
+        };
+
+        // Recalculate stats after equipment change
+        const equipmentBonuses = calculateEquipmentBonuses(equipment);
+        const calculatedStats = calculateTotalStats(newState.playerCharacter, equipmentBonuses);
+
+        eventBus.emit("equipment.changed", { equipment, source });
+        eventBus.emit("player.stats.updated", calculatedStats);
+        eventBus.emit("player.moveSpeed.updated", {
+          newSpeed: calculatedStats.actualMoveSpeed,
+          displaySpeed: calculatedStats.totalMoveSpeed,
+        });
+
+        return {
+          ...newState,
+          calculatedStats,
+        };
+      });
     },
 
     // Input focus
@@ -242,7 +448,6 @@ export const useGameStore = create<GameState>()(
         const skills = { ...state.playerCharacter.skills };
 
         if (!skills[skillId]) {
-          // Initialize the skill if it doesn't exist
           const basePoints =
             SKILL_PROGRESSION.BASE_POINTS[skillId as keyof typeof SKILL_PROGRESSION.BASE_POINTS] ||
             15;
@@ -257,38 +462,38 @@ export const useGameStore = create<GameState>()(
         const skill = skills[skillId];
         const oldLevel = skill.level;
 
-        // Different handling based on skill type
         if (skillId === "playerLevel") {
-          // For player level, directly set the experience value
           skill.experience = newExperience;
-
-          // Make sure maxExperience is correct
           skill.maxExperience = calculatePointsForNextLevel(skillId, skill.level);
         } else {
-          // For other skills, handle as incremental experience
-          // Calculate total experience so far
           let totalExp = 0;
           for (let level = 1; level < skill.level; level++) {
             totalExp += calculatePointsForNextLevel(skillId, level);
           }
           totalExp += skill.experience;
 
-          // Add new experience
           const newTotalExp = totalExp + (newExperience - skill.experience);
-
-          // Calculate new level and experience
           const { level, currentExp, expForNextLevel } = calculateLevelFromExperience(
             skillId,
             newTotalExp
           );
 
-          // Update the skill
           skill.level = level;
           skill.experience = currentExp;
           skill.maxExperience = expForNextLevel;
         }
 
-        // Emit skill updated event
+        const newState = {
+          playerCharacter: {
+            ...state.playerCharacter,
+            skills,
+          },
+        };
+
+        // Recalculate stats after skill change
+        const equipmentBonuses = calculateEquipmentBonuses(state.playerCharacter.equipment);
+        const calculatedStats = calculateTotalStats(newState.playerCharacter, equipmentBonuses);
+
         eventBus.emit("playerCharacter.skill.updated", {
           skillId,
           level: skill.level,
@@ -297,16 +502,15 @@ export const useGameStore = create<GameState>()(
           leveledUp: skill.level > oldLevel,
         });
 
-        // Check for player level change
         if (skillId === "playerLevel" && skill.level !== oldLevel) {
           eventBus.emit("playerCharacter.level.changed", skill.level);
         }
 
+        eventBus.emit("player.stats.updated", calculatedStats);
+
         return {
-          playerCharacter: {
-            ...state.playerCharacter,
-            skills,
-          },
+          ...newState,
+          calculatedStats,
         };
       });
     },
@@ -315,13 +519,11 @@ export const useGameStore = create<GameState>()(
     getItemInstanceById: (instanceId) => {
       const state = get();
 
-      // Check inventory first
       const inventoryItem = state.playerCharacter.inventory.find(
         (item) => item.instanceId === instanceId
       );
       if (inventoryItem) return inventoryItem;
 
-      // Check equipment
       const equipment = state.playerCharacter.equipment;
       for (const slotItem of Object.values(equipment)) {
         if (slotItem && slotItem.instanceId === instanceId) {
@@ -336,15 +538,12 @@ export const useGameStore = create<GameState>()(
       const state = get();
       const itemData = ItemDictionary.getItem(itemInstance.templateId);
 
-      // Check if item is stackable
       if (itemData?.stackable) {
-        // Find existing stack of the same item
         const existingItemIndex = state.playerCharacter.inventory.findIndex(
           (item) => item.templateId === itemInstance.templateId
         );
 
         if (existingItemIndex !== -1) {
-          // Add to existing stack
           const newInventory = [...state.playerCharacter.inventory];
           const existingItem = newInventory[existingItemIndex];
           const currentQuantity = existingItem.quantity || 1;
@@ -367,7 +566,6 @@ export const useGameStore = create<GameState>()(
         }
       }
 
-      // Add as new item (set quantity to 1 if not specified)
       const newItem = {
         ...itemInstance,
         quantity: itemInstance.quantity || 1,
@@ -386,77 +584,66 @@ export const useGameStore = create<GameState>()(
 
     removeItemInstanceFromInventory: (instanceId, quantity = 1) => {
       const state = get();
-      const inventory = state.playerCharacter.inventory;
-      const index = inventory.findIndex((item) => item.instanceId === instanceId);
+      const inventory = [...state.playerCharacter.inventory];
+      const itemIndex = inventory.findIndex((item) => item.instanceId === instanceId);
 
-      if (index !== -1) {
-        const item = inventory[index];
-        const currentQuantity = item.quantity || 1;
+      if (itemIndex === -1) return false;
 
-        if (currentQuantity > quantity) {
-          // Reduce quantity
-          const newInventory = [...inventory];
-          newInventory[index] = {
-            ...item,
-            quantity: currentQuantity - quantity,
-          };
+      const item = inventory[itemIndex];
+      const currentQuantity = item.quantity || 1;
 
-          set((state) => ({
-            playerCharacter: {
-              ...state.playerCharacter,
-              inventory: newInventory,
-            },
-          }));
-        } else {
-          // Remove item completely
-          set((state) => ({
-            playerCharacter: {
-              ...state.playerCharacter,
-              inventory: [...inventory.slice(0, index), ...inventory.slice(index + 1)],
-            },
-          }));
-        }
-
-        eventBus.emit("inventory.updated", null);
-        return true;
+      if (currentQuantity <= quantity) {
+        inventory.splice(itemIndex, 1);
+      } else {
+        inventory[itemIndex] = {
+          ...item,
+          quantity: currentQuantity - quantity,
+        };
       }
-      return false;
-    },
 
-    // Resources
-    updatePlayerGold: (gold) => {
       set((state) => ({
         playerCharacter: {
           ...state.playerCharacter,
-          gold,
+          inventory,
         },
       }));
-      eventBus.emit("playerCharacter.gold.changed", gold);
+
+      eventBus.emit("inventory.updated", null);
+      return true;
     },
 
-    updatePlayerMaxCapacity: (maxCapacity) => {
+    // Player stats
+    updatePlayerGold: (amount) => {
       set((state) => ({
         playerCharacter: {
           ...state.playerCharacter,
-          maxCapacity,
+          gold: Math.max(0, state.playerCharacter.gold + amount),
         },
       }));
-      eventBus.emit("playerCharacter.capacity.changed", maxCapacity);
     },
 
-    updatePlayerCurrentCapacity: (currentCapacity) => {
+    updatePlayerMaxCapacity: (amount) => {
       set((state) => ({
         playerCharacter: {
           ...state.playerCharacter,
-          currentCapacity,
+          maxCapacity: Math.max(0, state.playerCharacter.maxCapacity + amount),
         },
       }));
-      eventBus.emit("playerCharacter.currentCapacity.changed", currentCapacity);
+    },
+
+    updatePlayerCurrentCapacity: (amount) => {
+      set((state) => ({
+        playerCharacter: {
+          ...state.playerCharacter,
+          currentCapacity: Math.max(0, state.playerCharacter.currentCapacity + amount),
+        },
+      }));
     },
 
     // Chest methods
     isChestOpen: (chestId) => {
-      return !!get().openedChests[chestId];
+      const state = get();
+      return !!state.openedChests[chestId];
     },
 
     setChestOpen: (chestId) => {
@@ -466,7 +653,24 @@ export const useGameStore = create<GameState>()(
           [chestId]: Date.now(),
         },
       }));
-      eventBus.emit("chest.opened", chestId);
+    },
+
+    // Recalculate stats manually
+    recalculateStats: () => {
+      set((state) => {
+        const equipmentBonuses = calculateEquipmentBonuses(state.playerCharacter.equipment);
+        const calculatedStats = calculateTotalStats(state.playerCharacter, equipmentBonuses);
+
+        eventBus.emit("player.stats.updated", calculatedStats);
+        eventBus.emit("player.moveSpeed.updated", {
+          newSpeed: calculatedStats.actualMoveSpeed,
+          displaySpeed: calculatedStats.totalMoveSpeed,
+        });
+
+        return {
+          calculatedStats,
+        };
+      });
     },
   }))
 );

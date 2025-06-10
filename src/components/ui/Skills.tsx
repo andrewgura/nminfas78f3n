@@ -1,8 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-import { SkillData } from "@/types";
-import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
+
+// Import interfaces
+interface SkillData {
+  level: number;
+  experience: number;
+  maxExperience: number;
+}
 
 interface SkillRowProps {
   skillId: string;
@@ -11,6 +16,14 @@ interface SkillRowProps {
   bonusLevel?: number;
   onMouseEnter: (skillId: string) => void;
   onMouseLeave: () => void;
+}
+
+interface SecondaryStatRowProps {
+  statId: string;
+  statName: string;
+  baseValue: number;
+  bonusValue?: number;
+  icon: string;
 }
 
 const SkillRow: React.FC<SkillRowProps> = ({
@@ -61,14 +74,6 @@ const SkillRow: React.FC<SkillRowProps> = ({
   );
 };
 
-interface SecondaryStatRowProps {
-  statId: string;
-  statName: string;
-  baseValue: number;
-  bonusValue?: number;
-  icon: string;
-}
-
 const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
   statId,
   statName,
@@ -76,7 +81,7 @@ const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
   bonusValue = 0,
   icon,
 }) => {
-  const totalValue = baseValue + bonusValue;
+  const totalValue = baseValue;
 
   return (
     <div id={`stat-row-${statId}`} className="secondary-stat-row">
@@ -84,7 +89,6 @@ const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
       <div className="secondary-stat-name">{statName}</div>
       <div id={`${statId}-value`} className="secondary-stat-value">
         {totalValue}
-        {bonusValue > 0 && <span className="bonus-value"> +{bonusValue}</span>}
       </div>
     </div>
   );
@@ -134,10 +138,16 @@ const SkillTooltip: React.FC<TooltipProps> = ({ skillId, skill, visible, positio
 const getSkillName = (skillId: string): string => {
   const skillNames: Record<string, string> = {
     playerLevel: "Level",
-    meleeWeapons: "Melee Weapons",
+    melee: "Melee Weapons",
     archery: "Archery",
     magic: "Magic",
     shield: "Shield",
+    power: "Power",
+    healthRegen: "Health Regeneration",
+    manaRegen: "Mana Regeneration",
+    moveSpeed: "Move Speed",
+    attackSpeed: "Attack Speed",
+    capacity: "Capacity",
   };
   return skillNames[skillId] || skillId;
 };
@@ -145,103 +155,19 @@ const getSkillName = (skillId: string): string => {
 const getSkillBonusDescription = (skillId: string, bonus: number): string => {
   const descriptions: Record<string, string> = {
     playerLevel: `+${bonus}% to all attributes`,
-    meleeWeapons: `+${bonus}% damage with melee weapons`,
+    melee: `+${bonus}% damage with melee weapons`,
     archery: `+${bonus}% damage with bows and crossbows`,
     magic: `+${bonus}% magic damage and effect`,
     shield: `+${bonus}% damage reduction from all sources`,
+    power: `+${bonus} base damage to all attacks`,
+    healthRegen: `+${bonus} health regenerated per second`,
+    manaRegen: `+${bonus} mana regenerated per second`,
+    moveSpeed: `+${bonus}% movement speed`,
+    attackSpeed: `+${bonus}% faster attack speed`,
+    capacity: `+${bonus} carrying capacity`,
   };
   return descriptions[skillId] || `+${bonus}% effectiveness`;
 };
-
-// Calculate skill bonuses from equipment
-const calculateSkillBonus = (skillId: string, equipment: any): number => {
-  let totalBonus = 0;
-
-  // Skip if no equipment
-  if (!equipment) return 0;
-
-  // Check each equipped item for bonuses
-  Object.values(equipment).forEach((itemInstance: any) => {
-    if (!itemInstance) return;
-
-    // Check instance bonusStats directly
-    if (itemInstance.bonusStats && itemInstance.bonusStats[skillId]) {
-      totalBonus += itemInstance.bonusStats[skillId];
-    }
-
-    // Mapped stat bonuses from instance
-    const mappedStat = getMappedStatForSkill(skillId);
-    if (mappedStat && itemInstance.bonusStats && itemInstance.bonusStats[mappedStat]) {
-      totalBonus += itemInstance.bonusStats[mappedStat];
-    }
-  });
-
-  return totalBonus;
-};
-
-const getMappedStatForSkill = (skillId: string): string | null => {
-  const skillToStatMap: Record<string, string> = {
-    meleeWeapons: "melee",
-    archery: "archery",
-    magic: "magic",
-    shield: "armor",
-    playerLevel: "health",
-  };
-  return skillToStatMap[skillId] || null;
-};
-
-// Helper function to calculate total equipment bonus for a secondary stat
-const calculateSecondaryStatBonus = (statId: string, equipment: any): number => {
-  let totalBonus = 0;
-
-  // Skip if no equipment
-  if (!equipment) return 0;
-
-  // Check each equipped item for bonuses
-  Object.values(equipment).forEach((itemInstance: any) => {
-    if (!itemInstance || !itemInstance.bonusStats) return;
-
-    if (itemInstance.bonusStats[statId]) {
-      totalBonus += itemInstance.bonusStats[statId];
-    }
-  });
-
-  return totalBonus;
-};
-
-// Helper function to calculate total power from equipment
-function calculateTotalPower(equipment: any): number {
-  let totalPower = 0;
-
-  Object.values(equipment).forEach((itemInstance: any) => {
-    if (!itemInstance) return;
-
-    // Get combined stats from the item instance
-    const itemData = ItemInstanceManager.getCombinedStats(itemInstance);
-    if (itemData?.power) {
-      totalPower += itemData.power;
-    }
-  });
-
-  return totalPower;
-}
-
-// Helper function to calculate total armor from equipment
-function calculateTotalArmor(equipment: any): number {
-  let totalArmor = 0;
-
-  Object.values(equipment).forEach((itemInstance: any) => {
-    if (!itemInstance) return;
-
-    // Get combined stats from the item instance
-    const itemData = ItemInstanceManager.getCombinedStats(itemInstance);
-    if (itemData?.armor) {
-      totalArmor += itemData.armor;
-    }
-  });
-
-  return totalArmor;
-}
 
 enum SkillTab {
   MAIN = "main",
@@ -249,7 +175,7 @@ enum SkillTab {
 }
 
 const SkillsWindow: React.FC = () => {
-  const { playerCharacter } = useGameStore();
+  const { playerCharacter, calculatedStats } = useGameStore();
   const [activeTab, setActiveTab] = useState<SkillTab>(SkillTab.MAIN);
   const [tooltipState, setTooltipState] = useState<{
     visible: boolean;
@@ -277,15 +203,12 @@ const SkillsWindow: React.FC = () => {
   // Listen for toggle events
   useEventBus("skills.toggle", (data: { visible: boolean }) => {
     setVisible(data.visible);
-
-    // Emit visibility changed event
     emitEvent("skills.visibility.changed", data.visible);
   });
 
   // Listen to K key to toggle window
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't trigger if an input is focused
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -302,13 +225,11 @@ const SkillsWindow: React.FC = () => {
   }, [visible, emitEvent]);
 
   const handleSkillMouseEnter = (skillId: string) => {
-    // Get position of skill row
     const element = document.getElementById(`skill-row-${skillId}`);
     if (!element) return;
 
     const rect = element.getBoundingClientRect();
 
-    // Show tooltip
     setTooltipState({
       visible: true,
       skillId,
@@ -323,22 +244,49 @@ const SkillsWindow: React.FC = () => {
     setTooltipState((prev) => ({ ...prev, visible: false }));
   };
 
-  // Calculate bonuses
+  // Get skill bonuses from calculatedStats
   const getSkillBonus = (skillId: string): number => {
-    return calculateSkillBonus(skillId, playerCharacter.equipment);
+    return (
+      calculatedStats.equipmentBonuses[skillId as keyof typeof calculatedStats.equipmentBonuses] ||
+      0
+    );
   };
 
-  // Base values for secondary stats
-  const baseSecondaryStats: Record<string, number> = {
-    health: playerCharacter.maxHealth,
-    mana: 100, // Default value, adjust as needed
-    power: 0,
-    armor: 0,
-    moveSpeed: 1, // Default value
-    healthRegen: 1, // Default value
-    manaRegen: 1, // Default value
-    capacity: playerCharacter.maxCapacity,
-    attackSpeed: 2,
+  // Get skill data with fallback defaults
+  const getSkillData = (skillId: string): SkillData => {
+    return (
+      playerCharacter.skills[skillId] || {
+        level: 1,
+        experience: 0,
+        maxExperience: 15,
+      }
+    );
+  };
+
+  // Get total stat values from calculatedStats
+  const getTotalStatValue = (statId: string): number => {
+    switch (statId) {
+      case "health":
+        return calculatedStats.totalHealth;
+      case "mana":
+        return calculatedStats.totalMana;
+      case "power":
+        return calculatedStats.totalPower;
+      case "armor":
+        return calculatedStats.totalArmor;
+      case "moveSpeed":
+        return calculatedStats.totalMoveSpeed;
+      case "healthRegen":
+        return calculatedStats.totalHealthRegen;
+      case "manaRegen":
+        return calculatedStats.totalManaRegen;
+      case "capacity":
+        return calculatedStats.totalCapacity;
+      case "attackSpeed":
+        return calculatedStats.totalAttackSpeed;
+      default:
+        return 0;
+    }
   };
 
   // Icons for secondary stats
@@ -352,20 +300,6 @@ const SkillsWindow: React.FC = () => {
     manaRegen: "💦",
     capacity: "📦",
     attackSpeed: "💨",
-  };
-
-  // Friendly names for secondary stats
-  const secondaryStatNames: Record<string, string> = {
-    health: "Health",
-    mana: "Mana",
-    power: "Power",
-    armor: "Armor",
-    strength: "Strength",
-    moveSpeed: "Move Speed",
-    healthRegen: "Health Regen",
-    manaRegen: "Mana Regen",
-    capacity: "Capacity",
-    regen: "Regeneration",
   };
 
   // Handle mouse down for dragging
@@ -429,7 +363,6 @@ const SkillsWindow: React.FC = () => {
     <div
       className="skills-window-overlay"
       onClick={(e) => {
-        // Close if clicking outside the window
         if (e.target === e.currentTarget) {
           handleClose();
         }
@@ -476,7 +409,7 @@ const SkillsWindow: React.FC = () => {
               <SkillRow
                 skillId="playerLevel"
                 skillName="Level"
-                skill={playerCharacter.skills.playerLevel}
+                skill={getSkillData("playerLevel")}
                 bonusLevel={getSkillBonus("playerLevel")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
@@ -484,10 +417,10 @@ const SkillsWindow: React.FC = () => {
 
               {/* Combat Skills */}
               <SkillRow
-                skillId="meleeWeapons"
+                skillId="melee"
                 skillName="Melee Weapons"
-                skill={playerCharacter.skills.meleeWeapons}
-                bonusLevel={getSkillBonus("meleeWeapons")}
+                skill={getSkillData("melee")}
+                bonusLevel={getSkillBonus("melee")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
               />
@@ -495,7 +428,7 @@ const SkillsWindow: React.FC = () => {
               <SkillRow
                 skillId="archery"
                 skillName="Archery"
-                skill={playerCharacter.skills.archery}
+                skill={getSkillData("archery")}
                 bonusLevel={getSkillBonus("archery")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
@@ -504,7 +437,7 @@ const SkillsWindow: React.FC = () => {
               <SkillRow
                 skillId="magic"
                 skillName="Magic"
-                skill={playerCharacter.skills.magic}
+                skill={getSkillData("magic")}
                 bonusLevel={getSkillBonus("magic")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
@@ -513,9 +446,7 @@ const SkillsWindow: React.FC = () => {
               <SkillRow
                 skillId="shield"
                 skillName="Shield"
-                skill={
-                  playerCharacter.skills.shield || { level: 1, experience: 0, maxExperience: 20 }
-                }
+                skill={getSkillData("shield")}
                 bonusLevel={getSkillBonus("shield")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
@@ -528,14 +459,14 @@ const SkillsWindow: React.FC = () => {
                 <div className="stat-row">
                   <div className="stat-name">Power</div>
                   <div id="total-power" className="stat-value">
-                    {calculateTotalPower(playerCharacter.equipment)}
+                    {calculatedStats.totalPower}
                   </div>
                 </div>
 
                 <div className="stat-row">
                   <div className="stat-name">Armor</div>
                   <div id="total-armor" className="stat-value">
-                    {calculateTotalArmor(playerCharacter.equipment)}
+                    {calculatedStats.totalArmor}
                   </div>
                 </div>
               </div>
@@ -553,24 +484,21 @@ const SkillsWindow: React.FC = () => {
                   <SecondaryStatRow
                     statId="health"
                     statName="Health"
-                    baseValue={baseSecondaryStats.health}
-                    bonusValue={calculateSecondaryStatBonus("health", playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("health")}
                     icon={secondaryStatIcons.health}
                   />
 
                   <SecondaryStatRow
                     statId="mana"
                     statName="Mana"
-                    baseValue={baseSecondaryStats.mana}
-                    bonusValue={calculateSecondaryStatBonus("mana", playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("mana")}
                     icon={secondaryStatIcons.mana}
                   />
 
                   <SecondaryStatRow
                     statId="capacity"
                     statName="Capacity"
-                    baseValue={baseSecondaryStats.capacity}
-                    bonusValue={calculateSecondaryStatBonus("capacity", playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("capacity")}
                     icon={secondaryStatIcons.capacity}
                   />
                 </div>
@@ -582,24 +510,21 @@ const SkillsWindow: React.FC = () => {
                   <SecondaryStatRow
                     statId="power"
                     statName="Power"
-                    baseValue={baseSecondaryStats.power}
-                    bonusValue={calculateTotalPower(playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("power")}
                     icon={secondaryStatIcons.power}
                   />
 
                   <SecondaryStatRow
                     statId="armor"
                     statName="Armor"
-                    baseValue={baseSecondaryStats.armor}
-                    bonusValue={calculateTotalArmor(playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("armor")}
                     icon={secondaryStatIcons.armor}
                   />
 
                   <SecondaryStatRow
                     statId="attackSpeed"
                     statName="Attack Speed"
-                    baseValue={baseSecondaryStats.attackSpeed}
-                    bonusValue={calculateTotalArmor(playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("attackSpeed")}
                     icon={secondaryStatIcons.attackSpeed}
                   />
                 </div>
@@ -613,19 +538,14 @@ const SkillsWindow: React.FC = () => {
                   <SecondaryStatRow
                     statId="healthRegen"
                     statName="Health Regen"
-                    baseValue={baseSecondaryStats.healthRegen}
-                    bonusValue={calculateSecondaryStatBonus(
-                      "healthRegen",
-                      playerCharacter.equipment
-                    )}
+                    baseValue={getTotalStatValue("healthRegen")}
                     icon={secondaryStatIcons.healthRegen}
                   />
 
                   <SecondaryStatRow
                     statId="manaRegen"
                     statName="Mana Regen"
-                    baseValue={baseSecondaryStats.manaRegen}
-                    bonusValue={calculateSecondaryStatBonus("manaRegen", playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("manaRegen")}
                     icon={secondaryStatIcons.manaRegen}
                   />
                 </div>
@@ -637,8 +557,7 @@ const SkillsWindow: React.FC = () => {
                   <SecondaryStatRow
                     statId="moveSpeed"
                     statName="Move Speed"
-                    baseValue={baseSecondaryStats.moveSpeed}
-                    bonusValue={calculateSecondaryStatBonus("moveSpeed", playerCharacter.equipment)}
+                    baseValue={getTotalStatValue("moveSpeed")}
                     icon={secondaryStatIcons.moveSpeed}
                   />
                 </div>
@@ -648,10 +567,10 @@ const SkillsWindow: React.FC = () => {
         </div>
 
         {/* Tooltip */}
-        {tooltipState.visible && playerCharacter.skills[tooltipState.skillId] && (
+        {tooltipState.visible && getSkillData(tooltipState.skillId) && (
           <SkillTooltip
             skillId={tooltipState.skillId}
-            skill={playerCharacter.skills[tooltipState.skillId]}
+            skill={getSkillData(tooltipState.skillId)}
             visible={tooltipState.visible}
             position={tooltipState.position}
           />

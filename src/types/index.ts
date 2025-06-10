@@ -133,10 +133,16 @@ export interface ItemData {
   // Stats
   power?: number;
   armor?: number;
+  melee?: number;
   magic?: number;
   strength?: number;
   hpRegen?: number;
   mpRegen?: number;
+  capacity?: number;
+  attackSpeed?: number;
+  health?: number;
+  mana?: number;
+  moveSpeed?: number;
 
   // Physical properties
   weight: number;
