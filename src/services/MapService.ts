@@ -38,8 +38,8 @@ const MAPS: Record<string, MapConfig> = {
     mapfile: "noob-cave",
     mapname: "Noob Cave",
     defaultSpawn: {
-      tileX: 17, // Approximate tile coordinates
-      tileY: 17, // Approximate tile coordinates
+      tileX: -1,
+      tileY: 0,
     },
     chunkInfo: {
       startX: 0,
