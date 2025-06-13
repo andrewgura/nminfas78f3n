@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useEventBus } from "../../hooks/useEventBus";
 
 interface Message {
-  id: number;
+  id: string; // Changed from number to string for better uniqueness
   text: string;
   type: "normal" | "error";
   timestamp: number;
@@ -10,7 +10,6 @@ interface Message {
 
 const MessageLog: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [counter, setCounter] = useState(0);
   const [lastMessages, setLastMessages] = useState<Map<string, number>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +25,14 @@ const MessageLog: React.FC = () => {
     const errorMessage = error instanceof Error ? error.message : error;
     addMessage(`Error: ${errorMessage}`, "error");
   });
+
+  // Generate a unique ID for each message
+  const generateUniqueId = (): string => {
+    // Use timestamp + random number to ensure uniqueness
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 9);
+    return `msg_${timestamp}_${random}`;
+  };
 
   const addMessage = (text: string, type: "normal" | "error") => {
     // Prevent duplicate messages in quick succession
@@ -53,9 +60,8 @@ const MessageLog: React.FC = () => {
       return newMap;
     });
 
-    // Add the new message
-    const messageId = counter;
-    setCounter((prev) => prev + 1);
+    // Generate unique ID for this message
+    const messageId = generateUniqueId();
 
     const newMessage: Message = {
       id: messageId,

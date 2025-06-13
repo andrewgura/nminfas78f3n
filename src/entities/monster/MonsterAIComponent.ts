@@ -106,36 +106,20 @@ export class MonsterAIComponent extends Component {
 
         if (!movementComponent || !combatComponent) return;
 
-        // Check if health is below runaway threshold
-        const healthPercent = (this.monster.health / this.monster.maxHealth) * 100;
+        // Move towards player or maintain distance
+        movementComponent.approachPlayer(distance, this.attackType);
 
-        if (this.runawayPercent > 0 && healthPercent <= this.runawayPercent) {
-          // Run away from player
-          movementComponent.runFromPlayer();
+        // Try to attack player
+        const attacked = combatComponent.attackPlayerCharacter();
 
-          // Emit fleeing event
-          eventBus.emit("monster.fleeing", {
+        // Emit attack event if successful
+        if (attacked) {
+          eventBus.emit("monster.attack", {
             id: this.entity.id,
             type: this.monster.monsterType,
             name: this.monster.monsterName,
-            healthPercent: healthPercent,
+            attackType: this.attackType,
           });
-        } else {
-          // Move towards player or maintain distance
-          movementComponent.approachPlayer(distance, this.attackType);
-
-          // Try to attack player
-          const attacked = combatComponent.attackPlayerCharacter();
-
-          // Emit attack event if successful
-          if (attacked) {
-            eventBus.emit("monster.attack", {
-              id: this.entity.id,
-              type: this.monster.monsterType,
-              name: this.monster.monsterName,
-              attackType: this.attackType,
-            });
-          }
         }
       }
     } catch (error) {

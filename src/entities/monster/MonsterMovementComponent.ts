@@ -215,11 +215,7 @@ export class MonsterMovementComponent extends MovementComponent {
       if (this.moveInProgress) return;
       this.moveInProgress = true;
 
-      // FIXED: Use MapService to convert Tiled tile coordinates to world coordinates
       const worldPos = this.tiledTileToWorld(tileX, tileY);
-      console.log(
-        `Monster moving to Tiled tile (${tileX}, ${tileY}) = world (${worldPos.x}, ${worldPos.y})`
-      );
 
       // Calculate direction for animation
       const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);

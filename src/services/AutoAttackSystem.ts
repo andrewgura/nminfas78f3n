@@ -11,14 +11,26 @@ class AutoAttackSystemService {
   private attackRange: number = 64; // Default range (2 tiles)
   private isAutoAttacking: boolean = false;
   private currentWeaponType: string = "melee"; // Default weapon type
+  private storeUnsubscribe: (() => void) | null = null;
 
   constructor() {
     this.initialize();
   }
 
   initialize(): void {
-    // Subscribe to equipment changes
-    eventBus.on("equipment.changed", this.updateAttackProperties.bind(this));
+    // Subscribe directly to store changes for equipment
+    this.storeUnsubscribe = useGameStore.subscribe(
+      (state) => state.playerCharacter.equipment,
+      () => {
+        this.updateAttackProperties();
+      },
+      {
+        equalityFn: (a, b) => {
+          // Custom equality check to detect weapon changes
+          return a?.weapon?.templateId === b?.weapon?.templateId;
+        },
+      }
+    );
 
     // Subscribe to monster death
     eventBus.on("monster.died", this.handleMonsterDeath.bind(this));
@@ -83,18 +95,19 @@ class AutoAttackSystemService {
 
   /**
    * Update attack properties based on equipped weapon
+   * Now properly reads from GameStore as single source of truth
    */
-  private updateAttackProperties(event?: any): void {
+  private updateAttackProperties(): void {
     try {
-      // Get current equipment from store
+      // Read current equipment from GameStore (single source of truth)
       const equipment = useGameStore.getState().playerCharacter.equipment;
       const weaponEquipped = equipment.weapon;
 
-      if (weaponEquipped) {
-        // Direct access to weaponType property of the weapon
-        this.currentWeaponType = weaponEquipped.templateId
-          ? ItemDictionary.getWeaponType(weaponEquipped.templateId) || "melee"
-          : "melee";
+      if (weaponEquipped && weaponEquipped.templateId) {
+        // Get weapon type from the item dictionary
+        const weaponType = ItemDictionary.getWeaponType(weaponEquipped.templateId);
+
+        this.currentWeaponType = weaponType || "melee";
 
         // Set attack range based on weapon type
         switch (this.currentWeaponType) {
@@ -173,15 +186,16 @@ class AutoAttackSystemService {
   ): void {
     try {
       if (this.currentWeaponType === "melee") {
-        // Simple slash effect
-        const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
-        const distance = 32; // 1 tile
-        const effectX = startX + Math.cos(angle) * distance;
-        const effectY = startY + Math.sin(angle) * distance;
-
-        const slash = scene.add.rectangle(effectX, effectY, 20, 5, 0xffffff, 0.7);
-        slash.rotation = angle;
+        // Melee slash effect
+        const slash = scene.add.ellipse(targetX, targetY, 40, 20, 0xffffff, 0.8);
+        slash.setRotation(Phaser.Math.Angle.Between(startX, startY, targetX, targetY));
         slash.setDepth(6);
+
+        // Emit melee attack event
+        eventBus.emit("player.attack.impact", {
+          attackType: "melee",
+          position: { x: targetX, y: targetY },
+        });
 
         scene.tweens.add({
           targets: slash,
@@ -193,17 +207,10 @@ class AutoAttackSystemService {
             slash.destroy();
           },
         });
-
-        // Emit melee effect event
-        eventBus.emit("player.attack.effect", {
-          attackType: "melee",
-          position: { x: effectX, y: effectY },
-        });
       } else if (this.currentWeaponType === "archery") {
         // Arrow projectile
-        const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
-        const arrow = scene.add.rectangle(startX, startY, 8, 2, 0xdddddd);
-        arrow.rotation = angle;
+        const arrow = scene.add.ellipse(startX, startY, 20, 4, 0x8b4513, 1);
+        arrow.setRotation(Phaser.Math.Angle.Between(startX, startY, targetX, targetY));
         arrow.setDepth(6);
 
         // Emit projectile start event
@@ -211,7 +218,6 @@ class AutoAttackSystemService {
           attackType: "archery",
           startPosition: { x: startX, y: startY },
           targetPosition: { x: targetX, y: targetY },
-          angle: angle,
         });
 
         scene.tweens.add({
@@ -222,14 +228,14 @@ class AutoAttackSystemService {
           onComplete: () => {
             arrow.destroy();
 
-            // Add impact effect
-            const impact = scene.add.circle(targetX, targetY, 5, 0xffffff, 0.7);
+            // Create impact effect
+            const impact = scene.add.circle(targetX, targetY, 8, 0xffffff, 0.8);
             impact.setDepth(6);
             scene.tweens.add({
               targets: impact,
               alpha: 0,
               scale: 2,
-              duration: 150,
+              duration: 200,
               onComplete: () => {
                 impact.destroy();
               },
@@ -441,6 +447,7 @@ class AutoAttackSystemService {
    * Calculate damage based on weapon and stats
    */
   private calculateDamage(): number {
+    // Read from GameStore (single source of truth)
     const store = useGameStore.getState();
     const equipment = store.playerCharacter.equipment;
 
@@ -509,8 +516,13 @@ class AutoAttackSystemService {
   }
 
   dispose(): void {
+    // Clean up store subscription
+    if (this.storeUnsubscribe) {
+      this.storeUnsubscribe();
+      this.storeUnsubscribe = null;
+    }
+
     // Clean up event listeners
-    eventBus.off("equipment.changed", this.updateAttackProperties);
     eventBus.off("monster.died", this.handleMonsterDeath);
 
     // Clear state
