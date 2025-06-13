@@ -1827,6 +1827,11 @@
                          "name":"targetY",
                          "type":"int",
                          "value":0
+                        }, 
+                        {
+                         "name":"type",
+                         "type":"string",
+                         "value":"portal"
                         }],
                  "rotation":0,
                  "type":"",
