@@ -351,11 +351,10 @@ export class GameScene extends Phaser.Scene {
       const currentMap = store.currentMap;
 
       if (currentMap === "game-map") {
-        console.log(true, 123);
-        this.spawnMonsterAtTile("decayed-skeleton", 0, 1);
-        this.spawnMonsterAtTile("dark-elf-mage", 15, 2);
-        this.spawnMonsterAtTile("dark-elf-archer", 17, 1);
-        this.spawnMonsterAtTile("dark-elf-knight", 18, 2);
+        // this.spawnMonsterAtTile("decayed-skeleton", 0, 1);
+        // this.spawnMonsterAtTile("dark-elf-mage", 15, 2);
+        // this.spawnMonsterAtTile("dark-elf-archer", 17, 1);
+        // this.spawnMonsterAtTile("dark-elf-knight", 18, 2);
       }
     } catch (error) {
       console.error("Error in GameScene.spawnInitialMonsters:", error);

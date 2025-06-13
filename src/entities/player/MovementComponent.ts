@@ -1,23 +1,8 @@
 import { Component } from "../Component";
 import { Character } from "../Character";
-import { useGameStore } from "@/stores/gameStore";
-import { MapService } from "@/services/MapService";
 import { eventBus } from "@/utils/EventBus";
 
-interface Portal {
-  id: string;
-  sourceMap: string;
-  sourceX: number;
-  sourceY: number;
-  radius: number;
-  targetMap: string;
-  targetX: number;
-  targetY: number;
-  message?: string;
-}
-
-interface SceneWithChangeMap extends Phaser.Scene {
-  changeMap(mapKey: string, destX: number, destY: number, message?: string): void;
+interface Scene extends Phaser.Scene {
   collisionLayer?: Phaser.Tilemaps.TilemapLayer;
   monsters?: Phaser.GameObjects.Group;
 }
@@ -65,9 +50,6 @@ export class MovementComponent extends Component {
             entityId: this.entity.id,
             position: { x, y },
           });
-
-          // Check for portal at destination
-          this.checkForPortal(x, y);
         },
       });
     } catch (error) {
@@ -120,7 +102,7 @@ export class MovementComponent extends Component {
 
   collidesWithTerrain(scene: Phaser.Scene, x: number, y: number): boolean {
     try {
-      const gameScene = scene as SceneWithChangeMap;
+      const gameScene = scene as Scene;
       if (!gameScene.collisionLayer) return false;
 
       const tileX = Math.floor((x - gameScene.collisionLayer.x) / this.tileSize);
@@ -140,7 +122,7 @@ export class MovementComponent extends Component {
       const targetTileY = Math.floor(y / this.tileSize);
 
       // Check for collision with monsters
-      const gameScene = scene as SceneWithChangeMap;
+      const gameScene = scene as Scene;
       if (gameScene.monsters) {
         const collides = gameScene.monsters.getChildren().some((monster: any) => {
           if (monster === this.entity) return false; // Don't collide with self
@@ -158,74 +140,6 @@ export class MovementComponent extends Component {
     } catch (error) {
       console.error("Error in MovementComponent.collidesWithEntity:", error);
       return false;
-    }
-  }
-
-  checkForPortal(x: number, y: number): void {
-    try {
-      // Get current map
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Check if there's a portal at current position
-      const portal = MapService.checkPortalAtPosition(x, y, currentMap);
-
-      if (portal) {
-        this.usePortal(this.entity.scene, portal);
-      }
-    } catch (error) {
-      console.error("Error checking for portal:", error);
-    }
-  }
-
-  private usePortal(scene: Phaser.Scene, portal: Portal): void {
-    try {
-      const gameScene = scene as SceneWithChangeMap;
-
-      // Check if the game scene has the changeMap method
-      if (gameScene.changeMap) {
-        gameScene.changeMap(portal.targetMap, portal.targetX, portal.targetY, portal.message);
-
-        // Emit portal used event
-        eventBus.emit("portal.used", {
-          portalId: portal.id,
-          targetMap: portal.targetMap,
-          targetPosition: { x: portal.targetX, y: portal.targetY },
-        });
-      } else {
-        // Fallback to just updating the map in gameState
-        useGameStore.getState().updatePlayerMap(portal.targetMap);
-        console.warn(
-          "Game scene doesn't have changeMap method - map changed but player not teleported"
-        );
-      }
-    } catch (error) {
-      console.error("Error in MovementComponent.usePortal:", error);
-      eventBus.emit("error.portal.use", {
-        entityId: this.entity.id,
-        portalId: portal.id,
-        error,
-      });
-    }
-  }
-
-  updatePlayerMap(mapKey: string): void {
-    try {
-      // Update the map in the game state
-      useGameStore.getState().updatePlayerMap(mapKey);
-
-      // Log the map change
-      console.log(`Player map updated to: ${mapKey}`);
-
-      // Emit map change event
-      eventBus.emit("player.map.changed", { mapKey });
-    } catch (error) {
-      console.error("Error in MovementComponent.updatePlayerMap:", error);
-      eventBus.emit("error.map.change", {
-        entityId: this.entity.id,
-        mapKey,
-        error,
-      });
     }
   }
 }

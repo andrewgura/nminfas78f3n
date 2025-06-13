@@ -89,9 +89,6 @@ class PhaserSceneManagerService {
 
     // Listen for map change events
     eventBus.on("map.changed", this.handleMapChanged.bind(this));
-
-    // Listen for portal traversal events
-    eventBus.on("portal.traverse", this.handlePortalTraverse.bind(this));
   }
 
   /**
@@ -101,34 +98,6 @@ class PhaserSceneManagerService {
     // Store might already be updated by the service triggering this event
     // This is just to ensure synchronization
     useGameStore.getState().updatePlayerMap(mapKey);
-  }
-
-  /**
-   * Handle portal traversal events
-   */
-  private handlePortalTraverse(data: {
-    targetMap: string;
-    targetPosition: { x: number; y: number };
-    message?: string;
-  }): void {
-    if (!this.game) return;
-
-    const { targetMap, targetPosition, message } = data;
-
-    // Check if we're already in a transition
-    const transitionScene = this.game.scene.getScene("map-transition");
-    if (transitionScene && transitionScene.scene.isActive()) return;
-
-    // Store teleport position in game store
-    useGameStore.getState().playerCharacter.teleportPosition = targetPosition;
-
-    // Start the transition scene
-    this.game.scene.start("map-transition", {
-      targetMap,
-      targetX: targetPosition.x,
-      targetY: targetPosition.y,
-      message,
-    });
   }
 
   /**
@@ -249,7 +218,6 @@ class PhaserSceneManagerService {
     });
 
     eventBus.off("map.changed", this.handleMapChanged);
-    eventBus.off("portal.traverse", this.handlePortalTraverse);
 
     this.currentScene = null;
     this.game = null;

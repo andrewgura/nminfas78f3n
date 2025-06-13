@@ -48,22 +48,8 @@ const MAPS: Record<string, MapConfig> = {
   },
 };
 
-// Portal interface
-export interface Portal {
-  id: string;
-  sourceMap: string;
-  sourceX: number;
-  sourceY: number;
-  radius: number;
-  targetMap: string;
-  targetX: number;
-  targetY: number;
-  message: string;
-}
-
 class MapServicel {
   private maps: Record<string, MapConfig> = {};
-  private portals: Portal[] = [];
   private currentMap: string = "game-map";
   private tileSize: number = 32;
 
@@ -76,51 +62,13 @@ class MapServicel {
       // Load map configurations
       this.maps = { ...MAPS };
 
-      // Initialize default portals
-      this.initializeDefaultPortals();
-
       // Emit initialization event
       eventBus.emit("mapService.initialized", {
         mapCount: Object.keys(this.maps).length,
-        portalCount: this.portals.length,
       });
-
-      console.log(
-        `MapService initialized with ${Object.keys(this.maps).length} maps and ${
-          this.portals.length
-        } portals`
-      );
     } catch (error) {
       console.error("Error initializing map service:", error);
     }
-  }
-
-  private initializeDefaultPortals(): void {
-    // Add default portals using Tiled tile coordinates
-    this.portals = [
-      {
-        id: "main-to-cave",
-        sourceMap: "game-map",
-        sourceX: this.tiledTileToWorld(9, -6, "game-map").x, // Convert from Tiled tile (9, 26)
-        sourceY: this.tiledTileToWorld(9, -6, "game-map").y,
-        radius: 32,
-        targetMap: "noob-cave-map",
-        targetX: this.tiledTileToWorld(17, 17, "noob-cave-map").x, // Convert from Tiled tile (17, 17)
-        targetY: this.tiledTileToWorld(17, 17, "noob-cave-map").y,
-        message: "Descending into Noob Cave...",
-      },
-      {
-        id: "cave-to-main",
-        sourceMap: "noob-cave-map",
-        sourceX: this.tiledTileToWorld(17, 14, "noob-cave-map").x, // Convert from Tiled tile (17, 14)
-        sourceY: this.tiledTileToWorld(17, 14, "noob-cave-map").y,
-        radius: 32,
-        targetMap: "game-map",
-        targetX: this.tiledTileToWorld(9, 25, "game-map").x, // Convert from Tiled tile (9, 25)
-        targetY: this.tiledTileToWorld(9, 25, "game-map").y,
-        message: "Returning to the surface...",
-      },
-    ];
   }
 
   getMap(mapKey: string): MapConfig | null {
@@ -202,61 +150,6 @@ class MapServicel {
     return this.worldToTiledTile(phaserX, phaserY, mapKey);
   }
 
-  // Portal methods
-  getAllPortals(): Portal[] {
-    return [...this.portals];
-  }
-
-  getPortalsForMap(mapKey: string): Portal[] {
-    return this.portals.filter((portal) => portal.sourceMap === mapKey);
-  }
-
-  checkPortalAtPosition(x: number, y: number, currentMap: string): Portal | null {
-    const mapPortals = this.getPortalsForMap(currentMap);
-
-    // Find the first portal that contains the position
-    const portal = mapPortals.find((portal) => {
-      const dx = portal.sourceX - x;
-      const dy = portal.sourceY - y;
-      const distanceSquared = dx * dx + dy * dy;
-
-      // Check if within the portal's radius
-      return distanceSquared <= portal.radius * portal.radius;
-    });
-
-    return portal || null;
-  }
-
-  addPortal(portal: Portal): void {
-    // Check if a portal with this ID already exists
-    const existingIndex = this.portals.findIndex((p) => p.id === portal.id);
-
-    if (existingIndex >= 0) {
-      // Replace existing portal
-      this.portals[existingIndex] = portal;
-    } else {
-      // Add new portal
-      this.portals.push(portal);
-    }
-
-    // Emit portal added event
-    eventBus.emit("portal.added", portal);
-  }
-
-  removePortal(portalId: string): boolean {
-    const initialLength = this.portals.length;
-    this.portals = this.portals.filter((portal) => portal.id !== portalId);
-
-    const removed = this.portals.length < initialLength;
-
-    if (removed) {
-      // Emit portal removed event
-      eventBus.emit("portal.removed", portalId);
-    }
-
-    return removed;
-  }
-
   setCurrentMap(mapKey: string): void {
     if (this.maps[mapKey]) {
       this.currentMap = mapKey;
@@ -268,26 +161,6 @@ class MapServicel {
 
   getCurrentMap(): string {
     return this.currentMap;
-  }
-
-  // Portal traversal method
-  traversePortal(portalId: string): boolean {
-    const portal = this.portals.find((p) => p.id === portalId);
-    if (!portal) return false;
-
-    // Emit portal traversal event
-    eventBus.emit("portal.traverse", {
-      portalId,
-      sourceMap: portal.sourceMap,
-      targetMap: portal.targetMap,
-      targetPosition: { x: portal.targetX, y: portal.targetY },
-      message: portal.message,
-    });
-
-    // Update current map
-    this.setCurrentMap(portal.targetMap);
-
-    return true;
   }
 }
 
