@@ -3,12 +3,16 @@ import { eventBus } from "../utils/EventBus";
 // Map configuration interface
 export interface MapConfig {
   mapfile: string;
-  offsetX: number;
-  offsetY: number;
   mapname: string;
   defaultSpawn: {
-    x: number;
-    y: number;
+    // Using Tiled tile coordinates instead of world coordinates
+    tileX: number;
+    tileY: number;
+  };
+  // Chunk information for infinite maps
+  chunkInfo?: {
+    startX: number; // Starting tile X coordinate of the first chunk
+    startY: number; // Starting tile Y coordinate of the first chunk
   };
 }
 
@@ -17,24 +21,29 @@ const MAPS: Record<string, MapConfig> = {
   // Main game map
   "game-map": {
     mapfile: "devground",
-    offsetX: 1040,
-    offsetY: 2064,
     mapname: "Starter Town",
     defaultSpawn: {
-      x: 1040,
-      y: 2064,
+      // Spawn at Tiled tile (0, 0) instead of world coordinates
+      tileX: 0,
+      tileY: 0,
+    },
+    chunkInfo: {
+      startX: -32, // From your JSON data
+      startY: -64, // From your JSON data
     },
   },
 
   // Noob cave map
   "noob-cave-map": {
     mapfile: "noob-cave",
-    offsetX: 0,
-    offsetY: 0,
     mapname: "Noob Cave",
     defaultSpawn: {
-      x: 550,
-      y: 550,
+      tileX: 17, // Approximate tile coordinates
+      tileY: 17, // Approximate tile coordinates
+    },
+    chunkInfo: {
+      startX: 0,
+      startY: 0,
     },
   },
 };
@@ -56,6 +65,7 @@ class MapServicel {
   private maps: Record<string, MapConfig> = {};
   private portals: Portal[] = [];
   private currentMap: string = "game-map";
+  private tileSize: number = 32;
 
   constructor() {
     this.initialize();
@@ -86,28 +96,28 @@ class MapServicel {
   }
 
   private initializeDefaultPortals(): void {
-    // Add default portals
+    // Add default portals using Tiled tile coordinates
     this.portals = [
       {
         id: "main-to-cave",
         sourceMap: "game-map",
-        sourceX: 1328,
-        sourceY: 1872,
+        sourceX: this.tiledTileToWorld(9, -6, "game-map").x, // Convert from Tiled tile (9, 26)
+        sourceY: this.tiledTileToWorld(9, -6, "game-map").y,
         radius: 32,
         targetMap: "noob-cave-map",
-        targetX: 550,
-        targetY: 550,
+        targetX: this.tiledTileToWorld(17, 17, "noob-cave-map").x, // Convert from Tiled tile (17, 17)
+        targetY: this.tiledTileToWorld(17, 17, "noob-cave-map").y,
         message: "Descending into Noob Cave...",
       },
       {
         id: "cave-to-main",
         sourceMap: "noob-cave-map",
-        sourceX: 550,
-        sourceY: 450,
+        sourceX: this.tiledTileToWorld(17, 14, "noob-cave-map").x, // Convert from Tiled tile (17, 14)
+        sourceY: this.tiledTileToWorld(17, 14, "noob-cave-map").y,
         radius: 32,
         targetMap: "game-map",
-        targetX: 1328,
-        targetY: 1828,
+        targetX: this.tiledTileToWorld(9, 25, "game-map").x, // Convert from Tiled tile (9, 25)
+        targetY: this.tiledTileToWorld(9, 25, "game-map").y,
         message: "Returning to the surface...",
       },
     ];
@@ -129,32 +139,67 @@ class MapServicel {
     const map = this.maps[mapKey];
     if (!map) return { x: 0, y: 0 };
 
-    return (
-      map.defaultSpawn || {
-        x: map.offsetX,
-        y: map.offsetY,
-      }
-    );
+    // Convert Tiled tile coordinates to world coordinates
+    return this.tiledTileToWorld(map.defaultSpawn.tileX, map.defaultSpawn.tileY, mapKey);
   }
 
+  /**
+   * Convert Tiled tile coordinates to Phaser world coordinates
+   */
+  tiledTileToWorld(tileX: number, tileY: number, mapKey: string): { x: number; y: number } {
+    const map = this.maps[mapKey];
+    if (!map) return { x: tileX * this.tileSize, y: tileY * this.tileSize };
+
+    const chunkInfo = map.chunkInfo || { startX: 0, startY: 0 };
+
+    // Convert Tiled tile coordinates to local tile coordinates
+    const localTileX = tileX - chunkInfo.startX;
+    const localTileY = tileY - chunkInfo.startY;
+
+    // Convert to world coordinates (tile center)
+    return {
+      x: localTileX * this.tileSize + this.tileSize / 2,
+      y: localTileY * this.tileSize + this.tileSize / 2,
+    };
+  }
+
+  /**
+   * Convert Phaser world coordinates to Tiled tile coordinates
+   */
+  worldToTiledTile(worldX: number, worldY: number, mapKey: string): { x: number; y: number } {
+    const map = this.maps[mapKey];
+    if (!map)
+      return { x: Math.floor(worldX / this.tileSize), y: Math.floor(worldY / this.tileSize) };
+
+    const chunkInfo = map.chunkInfo || { startX: 0, startY: 0 };
+
+    // Convert world coordinates to local tile coordinates
+    const localTileX = Math.floor(worldX / this.tileSize);
+    const localTileY = Math.floor(worldY / this.tileSize);
+
+    // Convert to Tiled tile coordinates
+    return {
+      x: localTileX + chunkInfo.startX,
+      y: localTileY + chunkInfo.startY,
+    };
+  }
+
+  /**
+   * Legacy method - converts between coordinate systems (deprecated)
+   * @deprecated Use tiledTileToWorld or worldToTiledTile instead
+   */
   tiledToPhaser(mapKey: string, tiledX: number, tiledY: number): { x: number; y: number } {
-    const map = this.maps[mapKey];
-    if (!map) return { x: tiledX, y: tiledY };
-
-    return {
-      x: tiledX + map.offsetX,
-      y: tiledY + map.offsetY,
-    };
+    console.warn("tiledToPhaser is deprecated. Use tiledTileToWorld instead.");
+    return this.tiledTileToWorld(tiledX, tiledY, mapKey);
   }
 
+  /**
+   * Legacy method - converts between coordinate systems (deprecated)
+   * @deprecated Use tiledTileToWorld or worldToTiledTile instead
+   */
   phaserToTiled(mapKey: string, phaserX: number, phaserY: number): { x: number; y: number } {
-    const map = this.maps[mapKey];
-    if (!map) return { x: phaserX, y: phaserY };
-
-    return {
-      x: phaserX - map.offsetX,
-      y: phaserY - map.offsetY,
-    };
+    console.warn("phaserToTiled is deprecated. Use worldToTiledTile instead.");
+    return this.worldToTiledTile(phaserX, phaserY, mapKey);
   }
 
   // Portal methods

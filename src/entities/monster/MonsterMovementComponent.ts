@@ -2,6 +2,8 @@ import { MovementComponent } from "../player/MovementComponent";
 import { Monster } from "../Monster";
 import { MonsterAttackType } from "@/types";
 import { eventBus } from "@/utils/EventBus";
+import { MapService } from "@/services/MapService"; // Add this import
+import { useGameStore } from "@/stores/gameStore"; // Add this import
 
 export class MonsterMovementComponent extends MovementComponent {
   private isAggressive: boolean = false;
@@ -25,9 +27,8 @@ export class MonsterMovementComponent extends MovementComponent {
   private moveInterval: number = 1000; // Faster movement interval for ranged/magic
 
   constructor(entity: Monster, speed: number = 120, isAggressive: boolean = false) {
-    super(entity, speed);
+    super(entity);
     this.isAggressive = isAggressive;
-    this.moveDelay = this.moveInterval;
 
     if (!isAggressive) {
       this.setupWanderingBehavior();
@@ -44,6 +45,24 @@ export class MonsterMovementComponent extends MovementComponent {
 
   get monster(): Monster {
     return this.entity as Monster;
+  }
+
+  /**
+   * Convert Tiled tile coordinates to world coordinates using MapService
+   */
+  private tiledTileToWorld(tileX: number, tileY: number): { x: number; y: number } {
+    const store = useGameStore.getState();
+    const currentMap = store.currentMap;
+    return MapService.tiledTileToWorld(tileX, tileY, currentMap);
+  }
+
+  /**
+   * Convert world coordinates to Tiled tile coordinates using MapService
+   */
+  private worldToTiledTile(worldX: number, worldY: number): { x: number; y: number } {
+    const store = useGameStore.getState();
+    const currentMap = store.currentMap;
+    return MapService.worldToTiledTile(worldX, worldY, currentMap);
   }
 
   setAggression(aggressive: boolean): void {
@@ -132,24 +151,26 @@ export class MonsterMovementComponent extends MovementComponent {
         return;
       }
 
-      const currentTileX = Math.floor(this.entity.x / this.tileSize);
-      const currentTileY = Math.floor(this.entity.y / this.tileSize);
-
-      const initialTileX = Math.floor(this.initialPosition.x / this.tileSize);
-      const initialTileY = Math.floor(this.initialPosition.y / this.tileSize);
+      // FIXED: Use proper coordinate conversion
+      const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+      const initialTiledTile = this.worldToTiledTile(
+        this.initialPosition.x,
+        this.initialPosition.y
+      );
 
       const distFromInitial = Math.sqrt(
-        Math.pow(currentTileX - initialTileX, 2) + Math.pow(currentTileY - initialTileY, 2)
+        Math.pow(currentTiledTile.x - initialTiledTile.x, 2) +
+          Math.pow(currentTiledTile.y - initialTiledTile.y, 2)
       );
 
       let dx = 0,
         dy = 0;
 
       if (distFromInitial > this.wanderRange / this.tileSize) {
-        if (currentTileX < initialTileX) dx = 1;
-        else if (currentTileX > initialTileX) dx = -1;
-        else if (currentTileY < initialTileY) dy = 1;
-        else if (currentTileY > initialTileY) dy = -1;
+        if (currentTiledTile.x < initialTiledTile.x) dx = 1;
+        else if (currentTiledTile.x > initialTiledTile.x) dx = -1;
+        else if (currentTiledTile.y < initialTiledTile.y) dy = 1;
+        else if (currentTiledTile.y > initialTiledTile.y) dy = -1;
       } else {
         const randomDirection = Math.floor(Math.random() * 4);
         switch (randomDirection) {
@@ -168,8 +189,11 @@ export class MonsterMovementComponent extends MovementComponent {
         }
       }
 
-      if (this.canMoveTo(currentTileX + dx, currentTileY + dy)) {
-        this.moveToTile(currentTileX + dx, currentTileY + dy);
+      const targetTileX = currentTiledTile.x + dx;
+      const targetTileY = currentTiledTile.y + dy;
+
+      if (this.canMoveTo(targetTileX, targetTileY)) {
+        this.moveToTile(targetTileX, targetTileY);
 
         // Emit wandering event
         eventBus.emit("monster.wandering", {
@@ -191,14 +215,16 @@ export class MonsterMovementComponent extends MovementComponent {
       if (this.moveInProgress) return;
       this.moveInProgress = true;
 
-      const x = tileX * this.tileSize + this.tileSize / 2;
-      const y = tileY * this.tileSize + this.tileSize / 2;
+      // FIXED: Use MapService to convert Tiled tile coordinates to world coordinates
+      const worldPos = this.tiledTileToWorld(tileX, tileY);
+      console.log(
+        `Monster moving to Tiled tile (${tileX}, ${tileY}) = world (${worldPos.x}, ${worldPos.y})`
+      );
 
-      const currentTileX = Math.floor(this.entity.x / this.tileSize);
-      const currentTileY = Math.floor(this.entity.y / this.tileSize);
-
-      const dx = tileX - currentTileX;
-      const dy = tileY - currentTileY;
+      // Calculate direction for animation
+      const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+      const dx = tileX - currentTiledTile.x;
+      const dy = tileY - currentTiledTile.y;
 
       let direction = "";
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -216,16 +242,12 @@ export class MonsterMovementComponent extends MovementComponent {
       eventBus.emit("monster.movement.start", {
         entityId: this.entity.id,
         direction,
-        targetPosition: { x, y },
+        targetPosition: { x: worldPos.x, y: worldPos.y },
         isContinuous,
       });
 
       // Faster movement for all aggressive monsters
       let moveDuration = 400;
-      if (isContinuous) {
-        // Scale duration based on monster speed
-        moveDuration = (this.tileSize / this.speed) * 1000;
-      }
 
       // If it's a ranged or magic monster maintaining distance, move faster
       if (
@@ -238,19 +260,18 @@ export class MonsterMovementComponent extends MovementComponent {
 
       this.entity.scene.tweens.add({
         targets: this.entity,
-        x: x,
-        y: y,
+        x: worldPos.x,
+        y: worldPos.y,
         duration: moveDuration,
         ease: "Linear",
         onComplete: () => {
           this.isMoving = false;
           this.moveInProgress = false;
-          this.lastMoveTime = Date.now();
 
           // Emit movement complete event
           eventBus.emit("monster.movement.complete", {
             entityId: this.entity.id,
-            position: { x, y },
+            position: { x: worldPos.x, y: worldPos.y },
           });
 
           if (this.continuousPursuit && (this.isAggressive || this.isProvoked)) {
@@ -330,10 +351,8 @@ export class MonsterMovementComponent extends MovementComponent {
       return;
     }
 
-    const tileX = Math.floor(this.entity.x / this.tileSize);
-    const tileY = Math.floor(this.entity.y / this.tileSize);
-
-    this.moveToTile(tileX + move.dx, tileY + move.dy, true);
+    const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+    this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
 
     // Emit chasing event
     eventBus.emit("monster.chasing", {
@@ -349,10 +368,8 @@ export class MonsterMovementComponent extends MovementComponent {
       return;
     }
 
-    const tileX = Math.floor(this.entity.x / this.tileSize);
-    const tileY = Math.floor(this.entity.y / this.tileSize);
-
-    this.moveToTile(tileX + move.dx, tileY + move.dy, true);
+    const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+    this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
 
     // Emit retreating event
     eventBus.emit("monster.retreating", {
@@ -368,13 +385,12 @@ export class MonsterMovementComponent extends MovementComponent {
 
       const player = gameScene.playerCharacter;
 
-      const monsterTileX = Math.floor(this.entity.x / this.tileSize);
-      const monsterTileY = Math.floor(this.entity.y / this.tileSize);
-      const playerTileX = Math.floor(player.x / this.tileSize);
-      const playerTileY = Math.floor(player.y / this.tileSize);
+      // FIXED: Use proper coordinate conversion
+      const monsterTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+      const playerTiledTile = this.worldToTiledTile(player.x, player.y);
 
-      const diffX = playerTileX - monsterTileX;
-      const diffY = playerTileY - monsterTileY;
+      const diffX = playerTiledTile.x - monsterTiledTile.x;
+      const diffY = playerTiledTile.y - monsterTiledTile.y;
 
       let dx = 0,
         dy = 0;
@@ -383,28 +399,28 @@ export class MonsterMovementComponent extends MovementComponent {
         dx = diffX > 0 ? 1 : -1;
         if (!towards) dx = -dx;
 
-        if (this.canMoveTo(monsterTileX + dx, monsterTileY)) {
+        if (this.canMoveTo(monsterTiledTile.x + dx, monsterTiledTile.y)) {
           return { dx, dy: 0 };
         }
 
         dy = diffY > 0 ? 1 : -1;
         if (!towards) dy = -dy;
 
-        if (this.canMoveTo(monsterTileX, monsterTileY + dy)) {
+        if (this.canMoveTo(monsterTiledTile.x, monsterTiledTile.y + dy)) {
           return { dx: 0, dy };
         }
       } else {
         dy = diffY > 0 ? 1 : -1;
         if (!towards) dy = -dy;
 
-        if (this.canMoveTo(monsterTileX, monsterTileY + dy)) {
+        if (this.canMoveTo(monsterTiledTile.x, monsterTiledTile.y + dy)) {
           return { dx: 0, dy };
         }
 
         dx = diffX > 0 ? 1 : -1;
         if (!towards) dx = -dx;
 
-        if (this.canMoveTo(monsterTileX + dx, monsterTileY)) {
+        if (this.canMoveTo(monsterTiledTile.x + dx, monsterTiledTile.y)) {
           return { dx, dy: 0 };
         }
       }
@@ -423,7 +439,7 @@ export class MonsterMovementComponent extends MovementComponent {
       }
 
       for (const dir of directions) {
-        if (this.canMoveTo(monsterTileX + dir.dx, monsterTileY + dir.dy)) {
+        if (this.canMoveTo(monsterTiledTile.x + dir.dx, monsterTiledTile.y + dir.dy)) {
           return dir;
         }
       }
@@ -445,20 +461,27 @@ export class MonsterMovementComponent extends MovementComponent {
 
       if (!gameScene.groundLayer) return false;
 
+      // FIXED: Use MapService to convert to local coordinates for collision checking
+      const worldPos = this.tiledTileToWorld(tileX, tileY);
+      const localTileX = Math.floor(worldPos.x / this.tileSize);
+      const localTileY = Math.floor(worldPos.y / this.tileSize);
+
       if (gameScene.collisionLayer) {
-        const tile = gameScene.collisionLayer.getTileAt(tileX, tileY);
-        if (tile && tile.collides) return false;
+        const tile = gameScene.collisionLayer.getTileAt(localTileX, localTileY);
+        if (tile && tile.collides) {
+          console.log(`Cannot move to Tiled tile (${tileX}, ${tileY}) - collision detected`);
+          return false;
+        }
       }
 
+      // Check for other monsters at the same Tiled tile position
       if (gameScene.monsters) {
         const monsters = gameScene.monsters.getChildren();
         for (const monster of monsters) {
           if (monster === this.entity) continue;
 
-          const monsterTileX = Math.floor(monster.x / this.tileSize);
-          const monsterTileY = Math.floor(monster.y / this.tileSize);
-
-          if (monsterTileX === tileX && monsterTileY === tileY) {
+          const monsterTiledTile = this.worldToTiledTile(monster.x, monster.y);
+          if (monsterTiledTile.x === tileX && monsterTiledTile.y === tileY) {
             return false;
           }
         }
@@ -468,37 +491,6 @@ export class MonsterMovementComponent extends MovementComponent {
     } catch (error) {
       console.error(`Error in monster ${this.entity.id} canMoveTo:`, error);
       return false;
-    }
-  }
-
-  runFromPlayer(): void {
-    try {
-      const now = Date.now();
-
-      if (now - this.lastDecisionTime < this.decisionDelay || this.moveInProgress) return;
-      this.lastDecisionTime = now;
-
-      if (now - this.lastMoveTime < this.moveDelay) return;
-
-      const move = this.calculateNextMove(false);
-      if (!move) return;
-
-      const tileX = Math.floor(this.entity.x / this.tileSize);
-      const tileY = Math.floor(this.entity.y / this.tileSize);
-
-      this.moveToTile(tileX + move.dx, tileY + move.dy, true); // Continuous retreat
-
-      // Emit fleeing event
-      eventBus.emit("monster.fleeing", {
-        entityId: this.entity.id,
-        direction: move.dx !== 0 ? (move.dx > 0 ? "right" : "left") : move.dy > 0 ? "down" : "up",
-      });
-    } catch (error) {
-      console.error(`Error in monster ${this.entity.id} runFromPlayer:`, error);
-      eventBus.emit("error.monster.flee", {
-        entityId: this.entity.id,
-        error,
-      });
     }
   }
 
@@ -532,10 +524,8 @@ export class MonsterMovementComponent extends MovementComponent {
             return;
           }
 
-          const tileX = Math.floor(this.entity.x / this.tileSize);
-          const tileY = Math.floor(this.entity.y / this.tileSize);
-
-          this.moveToTile(tileX + move.dx, tileY + move.dy, true);
+          const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
 
           // Emit chasing event
           eventBus.emit("monster.chasing", {
@@ -563,9 +553,8 @@ export class MonsterMovementComponent extends MovementComponent {
             return;
           }
 
-          const tileX = Math.floor(this.entity.x / this.tileSize);
-          const tileY = Math.floor(this.entity.y / this.tileSize);
-          this.moveToTile(tileX + move.dx, tileY + move.dy, true); // Continuous retreat
+          const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true); // Continuous retreat
 
           // Emit retreating event
           eventBus.emit("monster.retreating", {
@@ -581,9 +570,8 @@ export class MonsterMovementComponent extends MovementComponent {
             return;
           }
 
-          const tileX = Math.floor(this.entity.x / this.tileSize);
-          const tileY = Math.floor(this.entity.y / this.tileSize);
-          this.moveToTile(tileX + move.dx, tileY + move.dy, true); // Continuous pursuit
+          const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true); // Continuous pursuit
 
           // Emit chasing event
           eventBus.emit("monster.chasing", {

@@ -1,11 +1,11 @@
 import { eventBus } from "../utils/EventBus";
+import { useGameStore } from "@/stores/gameStore";
 
 export class CursorPositionSystem {
   private scene: Phaser.Scene;
   private tileSize: number = 32;
   private displayElement: HTMLElement | null = null;
   private isEnabled: boolean = true;
-  private trackingEnabled: boolean = false;
 
   constructor(scene: Phaser.Scene, tileSize: number = 32) {
     this.scene = scene;
@@ -14,15 +14,8 @@ export class CursorPositionSystem {
 
   async initialize(): Promise<void> {
     try {
-      // Create the display element
       this.createDisplayElement();
-
-      // Set up the pointer move listener
       this.setupPointerMoveListener();
-
-      // Default to disabled - user can toggle with key
-      this.isEnabled = true;
-
       console.log("CursorPositionSystem initialized");
     } catch (error) {
       console.error("Error in CursorPositionSystem.initialize:", error);
@@ -37,19 +30,25 @@ export class CursorPositionSystem {
         existingElement.remove();
       }
 
-      // Create a new display element
+      // Create a simple display element
       this.displayElement = document.createElement("div");
       this.displayElement.id = "cursor-position-display";
+      this.displayElement.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff00;
+        padding: 8px 12px;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+        border-radius: 4px;
+        z-index: 1000;
+        pointer-events: none;
+        border: 1px solid #00ff00;
+      `;
 
-      // Create a container for the coordinates
-      const coordsContainer = document.createElement("div");
-      coordsContainer.className = "coords-container";
-      this.displayElement.appendChild(coordsContainer);
-
-      // Enable pointer events for the copy button
-      this.displayElement.style.pointerEvents = "auto";
-
-      // Add to document
       document.body.appendChild(this.displayElement);
     } catch (error) {
       console.error("Error in CursorPositionSystem.createDisplayElement:", error);
@@ -64,84 +63,73 @@ export class CursorPositionSystem {
         // Convert screen position to world position
         const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
-        // Convert world position to tile coordinates
-        const tileX = Math.floor(worldPoint.x / this.tileSize);
-        const tileY = Math.floor(worldPoint.y / this.tileSize);
+        // Get current map and convert to Tiled tile coordinates
+        const store = useGameStore.getState();
+        const currentMap = store.currentMap;
+        const tiledCoords = this.worldToTiledTile(worldPoint.x, worldPoint.y, currentMap);
 
         // Update the display
-        this.updateDisplay(worldPoint.x, worldPoint.y, tileX, tileY);
+        this.updateDisplay(tiledCoords.x, tiledCoords.y);
       });
-
-      // Start tracking
-      this.trackingEnabled = true;
     } catch (error) {
       console.error("Error in CursorPositionSystem.setupPointerMoveListener:", error);
     }
   }
 
-  private updateDisplay(worldX: number, worldY: number, tileX: number, tileY: number): void {
+  /**
+   * Convert world coordinates to Tiled tile coordinates
+   */
+  private worldToTiledTile(
+    worldX: number,
+    worldY: number,
+    mapKey: string
+  ): { x: number; y: number } {
+    try {
+      // Convert world coordinates to local tile coordinates
+      const localTileX = Math.floor(worldX / this.tileSize);
+      const localTileY = Math.floor(worldY / this.tileSize);
+
+      // For the game-map, account for chunk offset
+      if (mapKey === "game-map") {
+        const chunkStartX = -32; // From map JSON data
+        const chunkStartY = -64; // From map JSON data
+
+        return {
+          x: localTileX + chunkStartX,
+          y: localTileY + chunkStartY,
+        };
+      }
+
+      // For other maps, use direct conversion
+      return { x: localTileX, y: localTileY };
+    } catch (error) {
+      console.error("Error converting world to tiled coordinates:", error);
+      return {
+        x: Math.floor(worldX / this.tileSize),
+        y: Math.floor(worldY / this.tileSize),
+      };
+    }
+  }
+
+  private updateDisplay(tileX: number, tileY: number): void {
     try {
       if (!this.displayElement) return;
 
-      // Calculate tile center coordinates
-      const centerX = tileX * this.tileSize + this.tileSize / 2;
-      const centerY = tileY * this.tileSize + this.tileSize / 2;
+      this.displayElement.textContent = `Tile: (${tileX}, ${tileY})`;
 
-      // Find or create the coords container
-      let coordsContainer = this.displayElement.querySelector(".coords-container");
-      if (!coordsContainer) {
-        coordsContainer = document.createElement("div");
-        coordsContainer.className = "coords-container";
-        this.displayElement.prepend(coordsContainer);
-      }
-
-      // Clear previous content
-      coordsContainer.innerHTML = "";
-
-      // Create and add each line
-      const worldLine = document.createElement("div");
-      worldLine.textContent = `World: (${Math.round(worldX)}, ${Math.round(worldY)})`;
-
-      const tileLine = document.createElement("div");
-      tileLine.textContent = `Tile: (${tileX}, ${tileY})`;
-
-      const centerLine = document.createElement("div");
-      centerLine.innerHTML = `<strong>Center: (${centerX}, ${centerY})</strong>`;
-      centerLine.style.color = "#ffd700"; // Gold color for emphasis
-
-      // Add all lines to the coords container
-      coordsContainer.appendChild(worldLine);
-      coordsContainer.appendChild(tileLine);
-      coordsContainer.appendChild(centerLine);
-
-      // Emit cursor position event
+      // Emit cursor position event for other systems that might need it
       eventBus.emit("cursor.position.updated", {
-        worldPos: { x: worldX, y: worldY },
-        tilePos: { x: tileX, y: tileY },
-        centerPos: { x: centerX, y: centerY },
+        tiledTilePos: { x: tileX, y: tileY },
       });
     } catch (error) {
       console.error("Error in CursorPositionSystem.updateDisplay:", error);
     }
   }
 
-  // Show or hide the display element
-  toggleVisibility(visible?: boolean): void {
-    if (this.displayElement) {
-      const newVisibility = visible !== undefined ? visible : !this.isEnabled;
-      this.isEnabled = newVisibility;
-      this.displayElement.style.display = newVisibility ? "block" : "none";
-    }
-  }
-
   destroy(): void {
     try {
-      // Remove pointer move event listener if tracking is enabled
-      if (this.trackingEnabled) {
-        this.scene.input.off("pointermove");
-      }
+      this.scene.input.off("pointermove");
 
-      // Remove the display element
       if (this.displayElement) {
         this.displayElement.remove();
         this.displayElement = null;
