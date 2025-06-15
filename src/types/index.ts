@@ -202,6 +202,8 @@ export interface MonsterData {
   runawayPercent?: number; // Health percentage at which monster tries to run away
   description?: string; // Monster description/lore
   spriteSize?: 32 | 64;
+  scale?: number;
+  color?: string;
 }
 
 /**

@@ -172,7 +172,7 @@ export class GameScene extends Phaser.Scene {
       0, // offsetX
       0 // offsetY
     );
-    this.cameras.main.setZoom(1.4);
+    this.cameras.main.setZoom(1.9);
     this.cameras.main.fadeIn(500, 0, 0, 0);
   }
 

@@ -19,6 +19,8 @@ const MONSTER_DATA: Record<string, MonsterData> = {
     attackType: MonsterAttackType.Melee,
     runawayPercent: 0,
     description: "A decayed Skeleton.",
+    color: "0xff8080",
+    scale: 2,
   },
 
   // Dark Elf Category
