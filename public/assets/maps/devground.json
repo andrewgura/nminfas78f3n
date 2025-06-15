@@ -1233,14 +1233,14 @@
          "name":"monster-layer",
          "objects":[
                 {
-                 "height":32,
+                 "height":12,
                  "id":5,
                  "name":"",
                  "properties":[
                         {
                          "name":"maxCount",
                          "type":"int",
-                         "value":2
+                         "value":1
                         }, 
                         {
                          "name":"monsterType",
@@ -1255,10 +1255,39 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":12,
                  "x":621,
                  "y":-116
+                }, 
+                {
+                 "height":12,
+                 "id":7,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"maxCount",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"monsterType",
+                         "type":"string",
+                         "value":"decayed-skeleton"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":12,
+                 "x":387,
+                 "y":203
                 }],
+         "offsetx":-2,
+         "offsety":-1,
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -1885,7 +1914,7 @@
          "y":0
         }],
  "nextlayerid":8,
- "nextobjectid":6,
+ "nextobjectid":8,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

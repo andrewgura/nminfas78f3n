@@ -12,8 +12,8 @@ import { ItemBonusStats } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { autoAttackSystem } from "@/services/AutoAttackSystem";
 import { NPCService } from "@/services/NPCService";
-import { Chest } from "@/entities/Chest";
 import { PortalSystem } from "@/services/PortalSystem";
+import { MonsterSpawnSystem } from "@/services/MonsterSpawnSystem";
 
 export class GameScene extends Phaser.Scene {
   declare playerCharacter: PlayerCharacter;
@@ -25,6 +25,7 @@ export class GameScene extends Phaser.Scene {
   itemHoverSystem?: ItemHoverSystem;
   cursorPositionSystem!: CursorPositionSystem;
   portalSystem?: PortalSystem;
+  monsterSpawnSystem?: MonsterSpawnSystem;
   map?: Phaser.Tilemaps.Tilemap;
   groundLayer?: Phaser.Tilemaps.TilemapLayer;
   chestLayer?: Phaser.Tilemaps.TilemapLayer;
@@ -99,20 +100,51 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     try {
+      // Skip updates while changing maps to avoid issues
+      if (this.isChangingMap) return;
+
       // Update portal system
       if (this.portalSystem) {
         this.portalSystem.update(time, delta);
       }
 
-      // Update player character
-      if (this.playerCharacter) {
+      // Update playerCharacter
+      if (this.playerCharacter && this.playerCharacter.active) {
         this.playerCharacter.update(time);
+
+        // Ensure camera follows smoothly by updating every frame
+        this.cameras.main.scrollX = Phaser.Math.Linear(
+          this.cameras.main.scrollX,
+          this.playerCharacter.x - this.cameras.main.width / 2,
+          0.08
+        );
+        this.cameras.main.scrollY = Phaser.Math.Linear(
+          this.cameras.main.scrollY,
+          this.playerCharacter.y - this.cameras.main.height / 2,
+          0.08
+        );
+      }
+
+      // Get systems from the store
+      const store = useGameStore.getState();
+      const systems = store.systems || {};
+
+      // Update auto attack if available
+      if (systems.autoAttackSystem) {
+        systems.autoAttackSystem.update(time, delta, this.playerCharacter);
       }
 
       // Update NPCs
       if (this.npcs) {
         this.npcs.getChildren().forEach((npc) => {
           (npc as any).update(time);
+        });
+      }
+
+      // Update monsters
+      if (this.monsters) {
+        this.monsters.getChildren().forEach((monster) => {
+          (monster as any).update(time, delta);
         });
       }
     } catch (error) {
@@ -126,6 +158,7 @@ export class GameScene extends Phaser.Scene {
 
   private createGameGroups(): void {
     this.items = this.add.group();
+    this.monsters = this.add.group();
     this.npcs = this.add.group();
     this.chests = this.add.group();
   }
@@ -156,10 +189,15 @@ export class GameScene extends Phaser.Scene {
       this.itemHoverSystem = new ItemHoverSystem();
       this.cursorPositionSystem = new CursorPositionSystem(this, 32);
 
+      // Initialize monster spawn system
+      this.monsterSpawnSystem = new MonsterSpawnSystem(this);
+      this.monsterSpawnSystem.initialize();
+
       // Register systems
       store.registerSystem("itemHoverSystem", this.itemHoverSystem);
       store.registerSystem("gameScene", this);
       store.registerSystem("autoAttackSystem", autoAttackSystem);
+      store.registerSystem("monsterSpawnSystem", this.monsterSpawnSystem);
 
       // Setup systems
       this.itemHoverSystem.setupGlobalPointerHandler(this);
@@ -211,6 +249,43 @@ export class GameScene extends Phaser.Scene {
   private spawnInitialContent(): void {
     this.spawnInitialNPCs();
     this.spawnTestItems();
+    // Monster spawning is now handled by MonsterSpawnSystem
+  }
+
+  /**
+   * Re-initialize systems for new map - extracted for use during map transitions
+   */
+  private reinitializeSystemsForNewMap(): void {
+    try {
+      const store = useGameStore.getState();
+
+      // Clean up and reinitialize ItemHoverSystem
+      if (this.itemHoverSystem) {
+        this.itemHoverSystem.cleanup();
+      }
+      this.itemHoverSystem = new ItemHoverSystem();
+      store.registerSystem("itemHoverSystem", this.itemHoverSystem);
+
+      // Reinitialize monster spawn system for new map
+      if (this.monsterSpawnSystem) {
+        this.monsterSpawnSystem.cleanup();
+        this.monsterSpawnSystem.initialize();
+      }
+
+      // Reinitialize portal system
+      this.initPortalSystem();
+
+      // Reinitialize cursor position system
+      if (this.cursorPositionSystem) {
+        this.cursorPositionSystem.destroy();
+      }
+      this.cursorPositionSystem = new CursorPositionSystem(this, 32);
+      this.cursorPositionSystem.initialize();
+
+      console.log("Systems reinitialized for new map");
+    } catch (error) {
+      console.error("Error reinitializing systems for new map:", error);
+    }
   }
 
   /**
@@ -221,8 +296,8 @@ export class GameScene extends Phaser.Scene {
       const store = useGameStore.getState();
       const currentMap = store.currentMap;
 
-      // Import the MapChunkCalculator dynamically to avoid issues in production
-      import("@/utils/MapChunkCalculator")
+      // Import the MapChunkCalculator dynamically in development
+      import("../utils/MapChunkCalculator")
         .then(({ MapChunkCalculator }) => {
           const analysis = MapChunkCalculator.analyzeTiledMap(currentMap, this);
 
@@ -240,16 +315,12 @@ export class GameScene extends Phaser.Scene {
           }
         })
         .catch((err) => {
-          console.error("Error loading MapChunkCalculator:", err);
+          console.log("MapChunkCalculator not available:", err.message);
         });
     } catch (error) {
-      console.error("Error analyzing map chunks:", error);
+      console.log("Map chunk analysis not available:", error);
     }
   }
-
-  // =============================================================================
-  // MAP LOADING AND MANAGEMENT
-  // =============================================================================
 
   loadTiledMap(): boolean {
     try {
@@ -330,6 +401,187 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // =============================================================================
+  // COLLISION SETUP
+  // =============================================================================
+
+  setupCollisions(): void {
+    try {
+      if (!this.collisionLayer || !this.playerCharacter) return;
+
+      // Basic collisions
+      this.physics.add.collider(this.playerCharacter, this.collisionLayer);
+      this.physics.add.collider(this.items, this.collisionLayer);
+      this.physics.add.collider(this.monsters, this.collisionLayer);
+      this.physics.add.collider(this.npcs, this.collisionLayer);
+      this.physics.add.collider(this.chests, this.collisionLayer);
+
+      // Monsters collide with player
+      if (this.monsters && this.playerCharacter) {
+        this.physics.add.collider(this.monsters, this.playerCharacter);
+      }
+
+      // NPC interaction
+      this.physics.add.overlap(this.playerCharacter, this.npcs, (player, npc) => {
+        const isInteractKeyDown = this.input.keyboard?.checkDown(
+          this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+          500
+        );
+        if (isInteractKeyDown) {
+          (npc as NPC).interact();
+        }
+      });
+    } catch (error) {
+      console.error("Error in GameScene.setupCollisions:", error);
+    }
+  }
+
+  // =============================================================================
+  // ENTITY SPAWNING
+  // =============================================================================
+
+  private spawnInitialNPCs(): void {
+    try {
+      // Get the current map from the store
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      // Only spawn NPCs for the game-map
+      if (currentMap === "game-map") {
+        // Spawn Al Dee - merchant NPC
+        const alDeeData = NPCService.getNPC("merchant-aldee");
+        if (alDeeData) {
+          this.spawnNPC(alDeeData, 2128, 1328);
+          console.log("Spawned Al Dee at (2128, 1328)");
+        }
+      }
+    } catch (error) {
+      console.error("Error in GameScene.spawnInitialNPCs:", error);
+      eventBus.emit("ui.error.show", `Error spawning NPCs: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Spawn test items to verify hover system works after map changes
+   */
+  private spawnTestItems(): void {
+    try {
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      // Spawn test items on each map
+      if (currentMap === "game-map") {
+        this.spawnItem("fireSword", 1584, 240);
+      }
+    } catch (error) {
+      console.error("Error spawning test items:", error);
+    }
+  }
+
+  // This method is now handled by MonsterSpawnSystem
+  spawnInitialMonsters(): void {
+    // Monster spawning is now handled by MonsterSpawnSystem
+    console.log("Monster spawning now handled by MonsterSpawnSystem");
+  }
+
+  // =============================================================================
+  // ENTITY CREATION METHODS
+  // =============================================================================
+
+  spawnItem(
+    templateId: string,
+    x: number,
+    y: number,
+    instanceId?: string,
+    bonusStats?: ItemBonusStats
+  ): Item | null {
+    try {
+      // If no instanceId is provided, always create a new instance
+      if (!instanceId) {
+        // For world drops, 20% chance of random bonus stats
+        if (Math.random() < 0.2) {
+          const instance = ItemInstanceManager.createRandomInstance(templateId);
+          instanceId = instance.instanceId;
+          bonusStats = instance.bonusStats;
+        } else {
+          const instance = ItemInstanceManager.createItemInstance(templateId);
+          instanceId = instance.instanceId;
+        }
+      }
+
+      const item = new Item(this, x, y, templateId, instanceId, bonusStats);
+      this.items.add(item);
+
+      // Set up overlap with player
+      if (this.playerCharacter) {
+        this.physics.add.overlap(this.playerCharacter, item, () => {
+          if (!this.playerCharacter.nearbyItems.includes(item)) {
+            this.playerCharacter.addNearbyItem(item);
+            if (item.highlightItem) item.highlightItem();
+          }
+        });
+      }
+
+      return item;
+    } catch (error) {
+      console.error("Error in GameScene.spawnItem:", error);
+      return null;
+    }
+  }
+
+  spawnMonster(monsterType: string, x: number, y: number): Monster | null {
+    try {
+      const monster = new Monster(this, x, y, monsterType);
+      this.monsters.add(monster);
+
+      // Initialize monster with a default animation
+      // Use the animation system to play the idle animation
+      monster.playAnimation("down", false);
+
+      // Let the player know a monster has appeared
+      eventBus.emit("ui.message.show", `A ${monster.monsterName} has appeared!`);
+
+      return monster;
+    } catch (error) {
+      console.error("Error in GameScene.spawnMonster:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Spawns an NPC at the specified position
+   * @param npcData The NPC data
+   * @param x X coordinate
+   * @param y Y coordinate
+   * @returns The spawned NPC
+   */
+  spawnNPC(npcData: NPCData, x: number, y: number): NPC | null {
+    try {
+      const npc = new NPC(this, x, y, npcData);
+      this.npcs.add(npc);
+
+      // Initialize with a default animation
+      npc.playAnimation("down", false);
+
+      // Return the created NPC
+      return npc;
+    } catch (error) {
+      console.error("Error in GameScene.spawnNPC:", error);
+      return null;
+    }
+  }
+
+  // =============================================================================
+  // MAP TRANSITION METHODS
+  // =============================================================================
+
+  /**
+   * Changes the current map without restarting the scene
+   * @param mapKey The key of the new map to load
+   * @param destX Destination X coordinate for the player
+   * @param destY Destination Y coordinate for the player
+   * @param message Optional message to display when entering the map
+   */
   changeMap(mapKey: string, destX: number, destY: number, message?: string): void {
     try {
       // Prevent double transitions
@@ -392,68 +644,28 @@ export class GameScene extends Phaser.Scene {
             eventBus.emit("map.changed", mapKey);
           });
         } catch (error) {
-          // Make sure to reset the flag even if there's an error
+          console.error("Error during map transition:", error);
           this.isChangingMap = false;
-          console.error("Error in map transition:", error);
+          eventBus.emit("ui.error.show", "Error during map transition");
         }
       });
     } catch (error) {
+      console.error("Error in changeMap:", error);
       this.isChangingMap = false;
-      console.error("Error in GameScene.changeMap:", error);
+      eventBus.emit("ui.error.show", "Error changing map");
     }
   }
 
   /**
-   * Re-initialize systems that need to be reset for the new map
-   */
-  private reinitializeSystemsForNewMap(): void {
-    try {
-      const store = useGameStore.getState();
-
-      // FIXED: Create completely fresh ItemHoverSystem for new map
-      if (this.itemHoverSystem) {
-        this.itemHoverSystem.cleanup();
-      }
-      this.itemHoverSystem = new ItemHoverSystem();
-      store.registerSystem("itemHoverSystem", this.itemHoverSystem);
-      this.itemHoverSystem.setupGlobalPointerHandler(this);
-
-      // Re-initialize portal system for the new map
-      this.initPortalSystem();
-
-      // Re-initialize cursor position system
-      if (this.cursorPositionSystem) {
-        this.cursorPositionSystem.destroy();
-      }
-      this.initCursorPositionSystem();
-
-      // Re-setup input handlers
-      this.input.keyboard?.off("keydown-E");
-      this.input.keyboard?.on("keydown-E", () => {
-        if (this.playerCharacter) {
-          this.playerCharacter.pickupNearbyItem();
-        }
-      });
-    } catch (error) {
-      console.error("Error re-initializing systems for new map:", error);
-    }
-  }
-
-  /**
-   * Final setup after map transition is completely done
+   * Final setup after map transition is complete
    */
   private finalizeMapTransition(): void {
     try {
+      // Re-setup ItemHoverSystem after map transition
       if (this.itemHoverSystem) {
-        // Give it a moment for items to be fully spawned
-        this.time.delayedCall(100, () => {
-          if (this.itemHoverSystem) {
-            this.itemHoverSystem.cleanup();
-            this.itemHoverSystem = new ItemHoverSystem();
-            useGameStore.getState().registerSystem("itemHoverSystem", this.itemHoverSystem);
-            this.itemHoverSystem.setupGlobalPointerHandler(this);
-          }
-        });
+        setTimeout(() => {
+          this.itemHoverSystem!.setupGlobalPointerHandler(this);
+        }, 100);
       }
     } catch (error) {
       console.error("Error finalizing map transition:", error);
@@ -465,18 +677,16 @@ export class GameScene extends Phaser.Scene {
    */
   private cleanupCurrentMap(): void {
     try {
-      console.log("Starting comprehensive map cleanup...");
+      // Clean up MonsterSpawnSystem first
+      if (this.monsterSpawnSystem) {
+        console.log("Cleaning up MonsterSpawnSystem during map change");
+        this.monsterSpawnSystem.cleanup();
+      }
 
-      // Clean up ItemHoverSystem first
+      // Clean up ItemHoverSystem
       if (this.itemHoverSystem) {
         console.log("Cleaning up ItemHoverSystem during map change");
         this.itemHoverSystem.cleanup();
-      }
-
-      // Clean up portal system
-      if (this.portalSystem) {
-        console.log("Cleaning up PortalSystem during map change");
-        this.portalSystem.cleanup();
       }
 
       // Pause physics to prevent collision errors during the transition
@@ -498,18 +708,19 @@ export class GameScene extends Phaser.Scene {
         this.groundLayer = undefined;
         this.collisionLayer = undefined;
         this.chestLayer = undefined;
-        this.interactLayer = null;
 
         // Destroy the map itself
         this.map.destroy();
         this.map = undefined;
       }
 
-      // Clear groups (should be empty now after force destroy)
+      // Clear groups
       if (this.items) {
         this.items.clear(true, true);
       }
-
+      if (this.monsters) {
+        this.monsters.clear(true, true);
+      }
       if (this.npcs) {
         this.npcs.clear(true, true);
       }
@@ -546,77 +757,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   // =============================================================================
-  // COLLISION SETUP
-  // =============================================================================
-
-  setupCollisions(): void {
-    try {
-      if (!this.collisionLayer || !this.playerCharacter) return;
-
-      // Basic collisions
-      this.physics.add.collider(this.playerCharacter, this.collisionLayer);
-      this.physics.add.collider(this.items, this.collisionLayer);
-      this.physics.add.collider(this.npcs, this.collisionLayer);
-      this.physics.add.collider(this.chests, this.collisionLayer);
-
-      // NPC interaction
-      this.physics.add.overlap(this.playerCharacter, this.npcs, (player, npc) => {
-        const isInteractKeyDown = this.input.keyboard?.checkDown(
-          this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-          500
-        );
-        if (isInteractKeyDown) {
-          (npc as NPC).interact();
-        }
-      });
-    } catch (error) {
-      console.error("Error in GameScene.setupCollisions:", error);
-    }
-  }
-
-  // =============================================================================
-  // ENTITY SPAWNING
-  // =============================================================================
-
-  private spawnInitialNPCs(): void {
-    try {
-      // Get the current map from the store
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Only spawn NPCs for the game-map
-      if (currentMap === "game-map") {
-        // Spawn Al Dee - merchant NPC
-        const alDeeData = NPCService.getNPC("merchant-aldee");
-        if (alDeeData) {
-          this.spawnNPC(alDeeData, 2128, 1328);
-          console.log("Spawned Al Dee at (2128, 1328)");
-        }
-      }
-    } catch (error) {
-      console.error("Error in GameScene.spawnInitialNPCs:", error);
-      eventBus.emit("ui.error.show", `Error spawning NPCs: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Spawn test items to verify hover system works after map changes
-   */
-  private spawnTestItems(): void {
-    try {
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Spawn test items on each map
-      if (currentMap === "game-map") {
-        this.spawnItem("fireSword", 1584, 240);
-      }
-    } catch (error) {
-      console.error("Error spawning test items:", error);
-    }
-  }
-
-  // =============================================================================
   // UTILITY METHODS
   // =============================================================================
 
@@ -631,70 +771,32 @@ export class GameScene extends Phaser.Scene {
   }
 
   // =============================================================================
-  // ENTITY CREATION METHODS
+  // CLEANUP
   // =============================================================================
 
-  spawnItem(
-    templateId: string,
-    x: number,
-    y: number,
-    instanceId?: string,
-    bonusStats?: ItemBonusStats
-  ): Item | null {
+  destroy(): void {
     try {
-      // Make sure instanceId is a string if provided, or undefined will be used
-      const item = new Item(this, x, y, templateId, instanceId || undefined, bonusStats);
-      this.items.add(item);
+      // Cleanup monster spawn system
+      if (this.monsterSpawnSystem) {
+        this.monsterSpawnSystem.destroy();
+      }
 
-      // Emit item spawned event
-      eventBus.emit("item.spawned", {
-        templateId,
-        instanceId: item.instanceId,
-        position: { x, y },
-      });
+      // Cleanup other systems
+      if (this.itemHoverSystem) {
+        this.itemHoverSystem.cleanup();
+      }
 
-      return item;
+      if (this.cursorPositionSystem) {
+        this.cursorPositionSystem.destroy();
+      }
+
+      if (this.portalSystem) {
+        this.portalSystem.cleanup();
+      }
+
+      // Note: Phaser scenes don't have a parent destroy method to call
     } catch (error) {
-      console.error(`Error spawning item ${templateId}:`, error);
-      return null;
-    }
-  }
-
-  spawnNPC(npcData: NPCData, x: number, y: number): NPC | null {
-    try {
-      const npc = new NPC(this, x, y, npcData);
-      this.npcs.add(npc);
-
-      // Emit NPC spawned event
-      eventBus.emit("npc.spawned", {
-        id: npc.id,
-        name: npc.npcName,
-        position: { x, y },
-      });
-
-      return npc;
-    } catch (error) {
-      console.error(`Error spawning NPC ${npcData.id}:`, error);
-      return null;
-    }
-  }
-
-  spawnChest(id: string, x: number, y: number, lootTable: string = "default"): Chest | null {
-    try {
-      const chest = new Chest(this, x, y, id, lootTable);
-      this.chests.add(chest);
-
-      // Emit chest spawned event
-      eventBus.emit("chest.spawned", {
-        id,
-        lootTable,
-        position: { x, y },
-      });
-
-      return chest;
-    } catch (error) {
-      console.error(`Error spawning chest ${id}:`, error);
-      return null;
+      console.error("Error destroying GameScene:", error);
     }
   }
 }

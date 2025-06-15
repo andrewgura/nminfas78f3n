@@ -265,6 +265,12 @@ export class Monster extends Character {
         aiComponent.disable();
       }
 
+      // Stop all movement components immediately
+      const movementComponent = this.components.get<MonsterMovementComponent>("movement");
+      if (movementComponent) {
+        movementComponent.disable();
+      }
+
       // Completely disable physics body
       if (this.body) {
         (this.body as Phaser.Physics.Arcade.Body).checkCollision.none = true;

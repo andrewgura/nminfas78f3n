@@ -249,8 +249,13 @@ export class MonsterMovementComponent extends MovementComponent {
   // Continue pursuit without delay for all aggressive monsters
   private continuePursuit(): void {
     try {
+      // FIXED: Add validation check to prevent the error
+      if (!this.entity || !this.entity.scene || !this.entity.active || this.monster.isDead) {
+        return;
+      }
+
       const gameScene = this.entity.scene as any;
-      if (!gameScene.playerCharacter) return;
+      if (!gameScene || !gameScene.playerCharacter) return;
 
       const player = gameScene.playerCharacter;
 
@@ -454,6 +459,19 @@ export class MonsterMovementComponent extends MovementComponent {
         }
       }
 
+      // FIXED: Restore monster-to-monster collision detection
+      if (gameScene.monsters) {
+        const monsters = gameScene.monsters.getChildren();
+        for (const monster of monsters) {
+          if (monster === this.entity) continue; // Skip self
+
+          const monsterTile = this.worldToTiledTile(monster.x, monster.y);
+          if (monsterTile.x === tileX && monsterTile.y === tileY) {
+            return false; // Position occupied by another monster
+          }
+        }
+      }
+
       return true;
     } catch (error) {
       // If there's any error, assume movement is not safe
@@ -569,8 +587,13 @@ export class MonsterMovementComponent extends MovementComponent {
 
   facePlayer(): void {
     try {
+      // FIXED: Add validation check
+      if (!this.entity || !this.entity.scene || !this.entity.active || this.monster.isDead) {
+        return;
+      }
+
       const gameScene = this.entity.scene as any;
-      if (!gameScene.playerCharacter) return;
+      if (!gameScene || !gameScene.playerCharacter) return;
 
       const player = gameScene.playerCharacter;
 
