@@ -203,7 +203,7 @@ export interface MonsterData {
   description?: string; // Monster description/lore
   spriteSize?: 32 | 64;
   scale?: number;
-  color?: string;
+  color?: number;
 }
 
 /**

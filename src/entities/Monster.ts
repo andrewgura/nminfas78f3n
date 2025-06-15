@@ -46,6 +46,17 @@ export class Monster extends Character {
       // Set origin to center the sprite on the tile
       this.setOrigin(0.8, 0.8);
 
+      // Apply color tint if specified
+      if (monsterData?.color !== undefined) {
+        this.color = monsterData.color;
+        this.setTint(monsterData.color);
+      }
+
+      // Apply scale if specified
+      if (monsterData?.scale !== undefined) {
+        this.setScale(monsterData.scale);
+      }
+
       // Add components
       this.addComponents(monsterData);
 
@@ -58,6 +69,9 @@ export class Monster extends Character {
         health: this.health,
         maxHealth: this.maxHealth,
         isAggressive: this.isAggressive,
+        // Include color and scale in the event for debugging/tracking
+        color: monsterData?.color,
+        scale: monsterData?.scale,
       });
     } catch (error) {
       console.error(`Error creating monster ${monsterType}:`, error);

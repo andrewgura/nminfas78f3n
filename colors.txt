@@ -1,0 +1,116 @@
+export const MonsterColors = {
+  // Light Reds
+  LIGHT_RED: 0xff8080,      // Your example - soft red
+  PINK_RED: 0xff6666,       // Slightly more intense
+  CORAL: 0xff7f7f,          // Coral-like red
+  
+  // Medium Reds  
+  RED: 0xff0000,            // Pure red
+  CRIMSON: 0xdc143c,        // Deep crimson
+  FIRE_RED: 0xff4500,       // Orange-red fire
+  
+  // Dark Reds
+  DARK_RED: 0x8b0000,       // Dark red
+  BLOOD_RED: 0x660000,      // Very dark blood red
+  MAROON: 0x800000,         // Maroon
+
+  // ===== BLUE FAMILY =====
+  // Ice, Water, Magic, Cold
+  // Light Blues
+  LIGHT_BLUE: 0x87ceeb,     // Sky blue
+  ICE_BLUE: 0xb0e0e6,       // Powder blue
+  CYAN: 0x00ffff,           // Bright cyan
+  
+  // Medium Blues
+  BLUE: 0x0000ff,           // Pure blue
+  ROYAL_BLUE: 0x4169e1,     // Royal blue
+  STEEL_BLUE: 0x4682b4,     // Steel blue
+  
+  // Dark Blues
+  DARK_BLUE: 0x000080,      // Navy blue
+  MIDNIGHT_BLUE: 0x191970,  // Midnight blue
+  DEEP_BLUE: 0x003366,      // Deep ocean blue
+
+  // ===== GREEN FAMILY =====
+  // Nature, Poison, Healing, Earth
+  // Light Greens
+  LIGHT_GREEN: 0x90ee90,    // Light green
+  MINT: 0x98fb98,           // Pale green
+  LIME: 0x00ff00,           // Bright lime
+  
+  // Medium Greens
+  GREEN: 0x008000,          // Forest green
+  POISON_GREEN: 0x32cd32,   // Lime green
+  EMERALD: 0x50c878,        // Emerald green
+  
+  // Dark Greens
+  DARK_GREEN: 0x006400,     // Dark green
+  FOREST_GREEN: 0x228b22,   // Forest green
+  SWAMP_GREEN: 0x2e4d2e,    // Swampy dark green
+
+  // ===== PURPLE FAMILY =====
+  // Magic, Corruption, Darkness, Royalty
+  // Light Purples
+  LAVENDER: 0xe6e6fa,       // Light lavender
+  LIGHT_PURPLE: 0xdda0dd,   // Plum
+  MAGENTA: 0xff00ff,        // Bright magenta
+  
+  // Medium Purples
+  PURPLE: 0x800080,         // Purple
+  VIOLET: 0x9400d3,         // Dark violet
+  MAGIC_PURPLE: 0x8a2be2,   // Blue violet
+  
+  // Dark Purples
+  DARK_PURPLE: 0x4b0082,    // Indigo
+  SHADOW_PURPLE: 0x301934,  // Very dark purple
+  VOID_PURPLE: 0x2d1b3d,    // Almost black purple
+
+  // ===== YELLOW/ORANGE FAMILY =====
+  // Fire, Light, Energy, Gold
+  // Light Yellows
+  LIGHT_YELLOW: 0xffffe0,   // Light yellow
+  CREAM: 0xfffdd0,          // Cream
+  GOLD: 0xffd700,           // Gold
+  
+  // Medium Yellows/Oranges
+  YELLOW: 0xffff00,         // Pure yellow
+  ORANGE: 0xffa500,         // Orange
+  AMBER: 0xffbf00,          // Amber
+  
+  // Dark Yellows/Oranges
+  DARK_ORANGE: 0xff8c00,    // Dark orange
+  BRONZE: 0xcd7f32,         // Bronze
+  BURNT_ORANGE: 0xcc5500,   // Burnt orange
+
+  // ===== GRAY/BLACK FAMILY =====
+  // Shadow, Undead, Stone, Metal
+  // Light Grays
+  LIGHT_GRAY: 0xd3d3d3,     // Light gray
+  SILVER: 0xc0c0c0,         // Silver
+  GHOST_WHITE: 0xf8f8ff,    // Almost white
+  
+  // Medium Grays
+  GRAY: 0x808080,           // Gray
+  SLATE_GRAY: 0x708090,     // Slate gray
+  STEEL_GRAY: 0x71797e,     // Steel gray
+  
+  // Dark Grays/Black
+  DARK_GRAY: 0x404040,      // Dark gray
+  CHARCOAL: 0x36454f,       // Charcoal
+  BLACK: 0x000000,          // Pure black
+
+  // ===== SPECIAL EFFECT COLORS =====
+  // Unique combinations for special monsters
+  FROST: 0x6faadb,          // Icy blue-white
+  TOXIC: 0x7fff00,          // Bright toxic green
+  ELECTRIC: 0x00bfff,       // Electric blue
+  HOLY: 0xffefd5,           // Holy white-gold
+  SHADOW: 0x2f2f2f,         // Shadow gray
+  NECRO: 0x4a4a4a,          // Necromantic gray
+  CHAOS: 0x8b008b,          // Chaotic purple
+  NATURE: 0x228b22,         // Natural green
+  INFERNAL: 0xff6347,       // Hellish red-orange
+  CELESTIAL: 0xffd700,      // Divine gold
+  SPECTRAL: 0x9932cc,       // Ghostly purple
+  ELEMENTAL: 0x4682b4,      // Elemental blue
+};

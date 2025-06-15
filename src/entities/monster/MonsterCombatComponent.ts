@@ -88,7 +88,7 @@ export class MonsterCombatComponent extends Component {
       // Flash the monster briefly to indicate attack
       this.entity.setTint(0xff0000);
       this.entity.scene.time.delayedCall(100, () => {
-        this.entity.clearTint();
+        this.entity.setTint(this.entity.color);
       });
 
       // Create attack effect
