@@ -17,39 +17,36 @@ interface MapConfigs {
   [key: string]: MapConfig;
 }
 
+interface Coordinates {
+  x: number;
+  y: number;
+}
+
 class MapServiceClass {
-  private maps: MapConfigs = {
+  private readonly maps: MapConfigs = {
     "game-map": {
       displayName: "Devground",
-      defaultSpawn: {
-        x: 0,
-        y: 0,
-      },
-      chunkInfo: {
-        startX: -32,
-        startY: -64,
-      },
+      defaultSpawn: { x: 0, y: 0 },
+      chunkInfo: { startX: -32, startY: -64 },
     },
     "noob-cave-map": {
       displayName: "Noob Cave",
-      defaultSpawn: {
-        x: 0,
-        y: 0,
-      },
-      chunkInfo: {
-        startX: -16,
-        startY: -16,
-      },
+      defaultSpawn: { x: 0, y: 0 },
+      chunkInfo: { startX: -16, startY: -16 },
     },
   };
 
   private currentMap: string = "game-map";
-  private tileSize: number = 32;
+  private readonly tileSize: number = 32;
+  private readonly coordinateCache = new Map<string, Coordinates>();
 
   /**
-   * Get the configuration for a specific map
+   * Get map configuration
    */
   getMap(mapKey: string): MapConfig | null {
+    if (!this.isValidMapKey(mapKey)) {
+      return null;
+    }
     return this.maps[mapKey] || null;
   }
 
@@ -61,132 +58,229 @@ class MapServiceClass {
   }
 
   /**
-   * Get the display name for a map
+   * Get display name for a map
    */
   getMapName(mapKey: string): string {
-    return this.maps[mapKey]?.displayName || mapKey;
+    const config = this.getMap(mapKey);
+    return config?.displayName || mapKey;
   }
 
   /**
-   * Get the default spawn point for a map in Phaser coordinates
-   * Converts the Tiled coordinates to Phaser coordinates
+   * Get default spawn point in Phaser coordinates
    */
-  getDefaultSpawn(mapKey: string): { x: number; y: number } {
-    if (!this.maps[mapKey]) {
+  getDefaultSpawn(mapKey: string): Coordinates {
+    const config = this.getMap(mapKey);
+    if (!config) {
       console.warn(`No map config found for ${mapKey}, using fallback spawn`);
       return { x: 0, y: 0 };
     }
 
-    // Get the Tiled coordinates for default spawn
-    const tiledX = this.maps[mapKey].defaultSpawn.x;
-    const tiledY = this.maps[mapKey].defaultSpawn.y;
-
-    // Convert to Phaser coordinates
-    return this.tiledToPhaser(mapKey, tiledX, tiledY);
+    return this.tiledToPhaser(mapKey, config.defaultSpawn.x, config.defaultSpawn.y);
   }
 
   /**
-   * Get the current map key
+   * Get current map key
    */
   getCurrentMap(): string {
     return this.currentMap;
   }
 
   /**
-   * Set the current map
+   * Set current map with validation
    */
-  setCurrentMap(mapKey: string): void {
-    if (this.maps[mapKey]) {
-      this.currentMap = mapKey;
-      eventBus.emit("map.changed", mapKey);
-    } else {
-      console.error(`Attempted to set invalid map: ${mapKey}`);
+  setCurrentMap(mapKey: string): boolean {
+    if (!this.isValidMapKey(mapKey)) {
+      console.error(`Invalid map key: ${mapKey}`);
+      return false;
     }
+
+    if (!this.maps[mapKey]) {
+      console.error(`Map configuration not found: ${mapKey}`);
+      return false;
+    }
+
+    const previousMap = this.currentMap;
+    this.currentMap = mapKey;
+
+    // Clear coordinate cache when changing maps
+    this.coordinateCache.clear();
+
+    eventBus.emit("map.changed", mapKey);
+
+    return true;
   }
 
   /**
-   * Convert Tiled coordinates to Phaser coordinates
-   * Tiled coordinates are based on tile indices and may include chunk offsets
-   * Phaser coordinates are pixel positions in the world
+   * Convert Tiled coordinates to Phaser coordinates with caching
    */
-  tiledToPhaser(mapKey: string, tiledX: number, tiledY: number): { x: number; y: number } {
+  tiledToPhaser(mapKey: string, tiledX: number, tiledY: number): Coordinates {
+    // Create cache key
+    const cacheKey = `${mapKey}_${tiledX}_${tiledY}_to_phaser`;
+    const cached = this.coordinateCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     try {
-      const mapConfig = this.maps[mapKey];
-      if (!mapConfig) {
-        throw new Error(`Map config not found for ${mapKey}`);
-      }
+      const result = this.calculateTiledToPhaser(mapKey, tiledX, tiledY);
 
-      // Get chunk info or use defaults
-      const chunkStartX = mapConfig.chunkInfo?.startX || 0;
-      const chunkStartY = mapConfig.chunkInfo?.startY || 0;
+      // Cache the result
+      this.coordinateCache.set(cacheKey, result);
 
-      // Calculate pixel position:
-      // 1. Adjust tile coordinates relative to chunk origin (tiledX - chunkStartX)
-      // 2. Convert to pixels (multiply by tile size)
-      // 3. Add half tile size to center in the tile
-      const phaserX = (tiledX - chunkStartX) * this.tileSize + this.tileSize / 2;
-      const phaserY = (tiledY - chunkStartY) * this.tileSize + this.tileSize / 2;
-
-      console.log(
-        `Converting Tiled(${tiledX}, ${tiledY}) to Phaser(${phaserX}, ${phaserY}) for map ${mapKey}`
-      );
-
-      return { x: phaserX, y: phaserY };
+      return result;
     } catch (error) {
       console.error("Error in tiledToPhaser conversion:", error);
-      // Return a safe fallback
-      return { x: 0, y: 0 };
+      return this.getSafeCoordinates();
     }
   }
 
   /**
-   * Convert Phaser coordinates to Tiled coordinates
-   * Phaser coordinates are pixel positions in the world
-   * Tiled coordinates are based on tile indices and may include chunk offsets
+   * Convert Phaser coordinates to Tiled coordinates with caching
    */
-  phaserToTiled(mapKey: string, phaserX: number, phaserY: number): { x: number; y: number } {
+  phaserToTiled(mapKey: string, phaserX: number, phaserY: number): Coordinates {
+    // Create cache key
+    const cacheKey = `${mapKey}_${phaserX}_${phaserY}_to_tiled`;
+    const cached = this.coordinateCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     try {
-      const mapConfig = this.maps[mapKey];
-      if (!mapConfig) {
-        throw new Error(`Map config not found for ${mapKey}`);
-      }
+      const result = this.calculatePhaserToTiled(mapKey, phaserX, phaserY);
 
-      // Get chunk info or use defaults
-      const chunkStartX = mapConfig.chunkInfo?.startX || 0;
-      const chunkStartY = mapConfig.chunkInfo?.startY || 0;
+      // Cache the result
+      this.coordinateCache.set(cacheKey, result);
 
-      // Calculate tile position:
-      // 1. Convert from pixels to tiles (divide by tile size and floor to get tile index)
-      // 2. Add chunk offset to get Tiled coordinates
-      const tiledX = Math.floor(phaserX / this.tileSize) + chunkStartX;
-      const tiledY = Math.floor(phaserY / this.tileSize) + chunkStartY;
-
-      console.log(
-        `Converting Phaser(${phaserX}, ${phaserY}) to Tiled(${tiledX}, ${tiledY}) for map ${mapKey}`
-      );
-
-      return { x: tiledX, y: tiledY };
+      return result;
     } catch (error) {
       console.error("Error in phaserToTiled conversion:", error);
-      // Return a safe fallback
-      return { x: 0, y: 0 };
+      return this.getSafeCoordinates();
     }
   }
 
   /**
-   * Register a new map config
+   * Register a new map configuration
    */
-  registerMap(mapKey: string, config: MapConfig): void {
-    this.maps[mapKey] = config;
+  registerMap(mapKey: string, config: MapConfig): boolean {
+    if (!this.isValidMapKey(mapKey)) {
+      console.error(`Invalid map key format: ${mapKey}`);
+      return false;
+    }
+
+    if (!this.validateMapConfig(config)) {
+      console.error(`Invalid map configuration for: ${mapKey}`);
+      return false;
+    }
+
+    this.maps[mapKey] = { ...config };
+    eventBus.emit("map.registered", { mapKey, config });
+    return true;
   }
 
   /**
-   * Set the global tile size
+   * Check if coordinates are within map bounds
    */
-  setTileSize(tileSize: number): void {
-    this.tileSize = tileSize;
+  isWithinBounds(mapKey: string, tiledX: number, tiledY: number): boolean {
+    const config = this.getMap(mapKey);
+    if (!config?.chunkInfo) {
+      return true; // No bounds checking without chunk info
+    }
+
+    // Add bounds validation logic here if needed
+    return true;
+  }
+
+  /**
+   * Get tile size
+   */
+  getTileSize(): number {
+    return this.tileSize;
+  }
+
+  /**
+   * Clear coordinate cache
+   */
+  clearCache(): void {
+    this.coordinateCache.clear();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number; keys: string[] } {
+    return {
+      size: this.coordinateCache.size,
+      keys: Array.from(this.coordinateCache.keys()),
+    };
+  }
+
+  // Private helper methods
+
+  private calculateTiledToPhaser(mapKey: string, tiledX: number, tiledY: number): Coordinates {
+    const mapConfig = this.maps[mapKey];
+    if (!mapConfig) {
+      throw new Error(`Map config not found for ${mapKey}`);
+    }
+
+    if (!this.isValidCoordinate(tiledX) || !this.isValidCoordinate(tiledY)) {
+      throw new Error(`Invalid input coordinates: (${tiledX}, ${tiledY})`);
+    }
+
+    const chunkStartX = mapConfig.chunkInfo?.startX || 0;
+    const chunkStartY = mapConfig.chunkInfo?.startY || 0;
+
+    const phaserX = (tiledX - chunkStartX) * this.tileSize + this.tileSize / 2;
+    const phaserY = (tiledY - chunkStartY) * this.tileSize + this.tileSize / 2;
+
+    return { x: phaserX, y: phaserY };
+  }
+
+  private calculatePhaserToTiled(mapKey: string, phaserX: number, phaserY: number): Coordinates {
+    const mapConfig = this.maps[mapKey];
+    if (!mapConfig) {
+      throw new Error(`Map config not found for ${mapKey}`);
+    }
+
+    if (!this.isValidCoordinate(phaserX) || !this.isValidCoordinate(phaserY)) {
+      throw new Error(`Invalid input coordinates: (${phaserX}, ${phaserY})`);
+    }
+
+    const chunkStartX = mapConfig.chunkInfo?.startX || 0;
+    const chunkStartY = mapConfig.chunkInfo?.startY || 0;
+
+    const tiledX = Math.floor(phaserX / this.tileSize) + chunkStartX;
+    const tiledY = Math.floor(phaserY / this.tileSize) + chunkStartY;
+
+    return { x: tiledX, y: tiledY };
+  }
+
+  private isValidMapKey(mapKey: string): boolean {
+    return typeof mapKey === "string" && mapKey.length > 0 && /^[a-zA-Z0-9-_]+$/.test(mapKey);
+  }
+
+  private isValidCoordinate(coord: number): boolean {
+    return typeof coord === "number" && !isNaN(coord) && isFinite(coord);
+  }
+
+  private validateMapConfig(config: MapConfig): boolean {
+    if (!config || typeof config !== "object") return false;
+    if (!config.displayName || typeof config.displayName !== "string") return false;
+    if (!config.defaultSpawn || typeof config.defaultSpawn !== "object") return false;
+    if (!this.isValidCoordinate(config.defaultSpawn.x)) return false;
+    if (!this.isValidCoordinate(config.defaultSpawn.y)) return false;
+
+    if (config.chunkInfo) {
+      if (!this.isValidCoordinate(config.chunkInfo.startX)) return false;
+      if (!this.isValidCoordinate(config.chunkInfo.startY)) return false;
+    }
+
+    return true;
+  }
+
+  private getSafeCoordinates(): Coordinates {
+    return { x: 0, y: 0 };
   }
 }
 
-// Create a singleton instance
+// Create and export singleton instance
 export const MapService = new MapServiceClass();

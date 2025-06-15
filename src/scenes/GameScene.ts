@@ -109,13 +109,6 @@ export class GameScene extends Phaser.Scene {
         this.playerCharacter.update(time);
       }
 
-      // Update monsters
-      if (this.monsters) {
-        this.monsters.getChildren().forEach((monster) => {
-          (monster as any).update(time);
-        });
-      }
-
       // Update NPCs
       if (this.npcs) {
         this.npcs.getChildren().forEach((npc) => {
@@ -133,7 +126,6 @@ export class GameScene extends Phaser.Scene {
 
   private createGameGroups(): void {
     this.items = this.add.group();
-    this.monsters = this.add.group();
     this.npcs = this.add.group();
     this.chests = this.add.group();
   }
@@ -217,7 +209,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnInitialContent(): void {
-    this.spawnInitialMonsters();
     this.spawnInitialNPCs();
     this.spawnTestItems();
   }
@@ -430,8 +421,6 @@ export class GameScene extends Phaser.Scene {
       // Re-initialize portal system for the new map
       this.initPortalSystem();
 
-      this.spawnInitialMonsters();
-
       // Re-initialize cursor position system
       if (this.cursorPositionSystem) {
         this.cursorPositionSystem.destroy();
@@ -476,6 +465,8 @@ export class GameScene extends Phaser.Scene {
    */
   private cleanupCurrentMap(): void {
     try {
+      console.log("Starting comprehensive map cleanup...");
+
       // Clean up ItemHoverSystem first
       if (this.itemHoverSystem) {
         console.log("Cleaning up ItemHoverSystem during map change");
@@ -514,13 +505,11 @@ export class GameScene extends Phaser.Scene {
         this.map = undefined;
       }
 
-      // Clear groups
+      // Clear groups (should be empty now after force destroy)
       if (this.items) {
         this.items.clear(true, true);
       }
-      if (this.monsters) {
-        this.monsters.clear(true, true);
-      }
+
       if (this.npcs) {
         this.npcs.clear(true, true);
       }
@@ -567,10 +556,8 @@ export class GameScene extends Phaser.Scene {
       // Basic collisions
       this.physics.add.collider(this.playerCharacter, this.collisionLayer);
       this.physics.add.collider(this.items, this.collisionLayer);
-      this.physics.add.collider(this.monsters, this.collisionLayer);
       this.physics.add.collider(this.npcs, this.collisionLayer);
       this.physics.add.collider(this.chests, this.collisionLayer);
-      this.physics.add.collider(this.monsters, this.playerCharacter);
 
       // NPC interaction
       this.physics.add.overlap(this.playerCharacter, this.npcs, (player, npc) => {
@@ -590,22 +577,6 @@ export class GameScene extends Phaser.Scene {
   // =============================================================================
   // ENTITY SPAWNING
   // =============================================================================
-
-  spawnInitialMonsters(): void {
-    try {
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      if (currentMap === "game-map") {
-        this.spawnMonster("decayed-skeleton", 1, 0);
-        this.spawnMonster("dark-elf-mage", 400, 950);
-        this.spawnMonster("dark-elf-archer", 400, 1000);
-        this.spawnMonster("dark-elf-knight", 300, 700);
-      }
-    } catch (error) {
-      console.error("Error in GameScene.spawnInitialMonsters:", error);
-    }
-  }
 
   private spawnInitialNPCs(): void {
     try {
@@ -685,28 +656,6 @@ export class GameScene extends Phaser.Scene {
       return item;
     } catch (error) {
       console.error(`Error spawning item ${templateId}:`, error);
-      return null;
-    }
-  }
-
-  spawnMonster(monsterType: string, x: number, y: number, id?: string): Monster | null {
-    try {
-      // If id is provided, use it, otherwise let Monster generate one
-      const monster = id
-        ? new Monster(this, x, y, monsterType, id)
-        : new Monster(this, x, y, monsterType);
-      this.monsters.add(monster);
-
-      // Emit monster spawned event
-      eventBus.emit("monster.spawned", {
-        id: monster.id,
-        type: monsterType,
-        position: { x, y },
-      });
-
-      return monster;
-    } catch (error) {
-      console.error(`Error spawning monster ${monsterType}:`, error);
       return null;
     }
   }

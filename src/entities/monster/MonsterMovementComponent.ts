@@ -51,18 +51,44 @@ export class MonsterMovementComponent extends MovementComponent {
    * Convert Tiled tile coordinates to world coordinates using MapService
    */
   private tiledTileToWorld(tileX: number, tileY: number): { x: number; y: number } {
-    const store = useGameStore.getState();
-    const currentMap = store.currentMap;
-    return MapService.tiledTileToWorld(tileX, tileY, currentMap);
+    try {
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      if (!MapService.tiledToPhaser || !currentMap) {
+        throw new Error("MapService not available");
+      }
+
+      return MapService.tiledToPhaser(currentMap, tileX, tileY);
+    } catch (error) {
+      // Fallback to basic coordinate math
+      return {
+        x: tileX * this.tileSize + this.tileSize / 2,
+        y: tileY * this.tileSize + this.tileSize / 2,
+      };
+    }
   }
 
   /**
    * Convert world coordinates to Tiled tile coordinates using MapService
    */
   private worldToTiledTile(worldX: number, worldY: number): { x: number; y: number } {
-    const store = useGameStore.getState();
-    const currentMap = store.currentMap;
-    return MapService.worldToTiledTile(worldX, worldY, currentMap);
+    try {
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      if (!MapService.phaserToTiled || !currentMap) {
+        throw new Error("MapService not available");
+      }
+
+      return MapService.phaserToTiled(currentMap, worldX, worldY);
+    } catch (error) {
+      // Fallback to basic tile math during map transitions
+      return {
+        x: Math.floor(worldX / this.tileSize),
+        y: Math.floor(worldY / this.tileSize),
+      };
+    }
   }
 
   setAggression(aggressive: boolean): void {
@@ -135,77 +161,6 @@ export class MonsterMovementComponent extends MovementComponent {
         callback: this.wander,
         callbackScope: this,
         loop: true,
-      });
-    }
-  }
-
-  private wander(): void {
-    try {
-      if (this.monster.isDead || this.isAggressive || this.isProvoked || this.moveInProgress)
-        return;
-
-      if (Math.random() < 0.7) {
-        const directions = ["down", "left", "up", "right"];
-        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
-        this.monster.playAnimation(randomDirection, false);
-        return;
-      }
-
-      // FIXED: Use proper coordinate conversion
-      const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-      const initialTiledTile = this.worldToTiledTile(
-        this.initialPosition.x,
-        this.initialPosition.y
-      );
-
-      const distFromInitial = Math.sqrt(
-        Math.pow(currentTiledTile.x - initialTiledTile.x, 2) +
-          Math.pow(currentTiledTile.y - initialTiledTile.y, 2)
-      );
-
-      let dx = 0,
-        dy = 0;
-
-      if (distFromInitial > this.wanderRange / this.tileSize) {
-        if (currentTiledTile.x < initialTiledTile.x) dx = 1;
-        else if (currentTiledTile.x > initialTiledTile.x) dx = -1;
-        else if (currentTiledTile.y < initialTiledTile.y) dy = 1;
-        else if (currentTiledTile.y > initialTiledTile.y) dy = -1;
-      } else {
-        const randomDirection = Math.floor(Math.random() * 4);
-        switch (randomDirection) {
-          case 0:
-            dx = 1;
-            break;
-          case 1:
-            dx = -1;
-            break;
-          case 2:
-            dy = 1;
-            break;
-          case 3:
-            dy = -1;
-            break;
-        }
-      }
-
-      const targetTileX = currentTiledTile.x + dx;
-      const targetTileY = currentTiledTile.y + dy;
-
-      if (this.canMoveTo(targetTileX, targetTileY)) {
-        this.moveToTile(targetTileX, targetTileY);
-
-        // Emit wandering event
-        eventBus.emit("monster.wandering", {
-          entityId: this.entity.id,
-          direction: dx !== 0 ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up",
-        });
-      }
-    } catch (error) {
-      console.error(`Error in monster ${this.entity.id} wander:`, error);
-      eventBus.emit("error.monster.wander", {
-        entityId: this.entity.id,
-        error,
       });
     }
   }
@@ -377,72 +332,26 @@ export class MonsterMovementComponent extends MovementComponent {
   calculateNextMove(towards: boolean = true): { dx: number; dy: number } | null {
     try {
       const gameScene = this.entity.scene as any;
-      if (!gameScene.playerCharacter) return null;
+
+      // Safety checks
+      if (
+        gameScene.isChangingMap ||
+        !gameScene.playerCharacter ||
+        !this.entity.active ||
+        this.entity.scene !== gameScene
+      ) {
+        return null;
+      }
 
       const player = gameScene.playerCharacter;
+      const monsterTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+      const playerTile = this.worldToTiledTile(player.x, player.y);
 
-      // FIXED: Use proper coordinate conversion
-      const monsterTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-      const playerTiledTile = this.worldToTiledTile(player.x, player.y);
+      const diffX = playerTile.x - monsterTile.x;
+      const diffY = playerTile.y - monsterTile.y;
 
-      const diffX = playerTiledTile.x - monsterTiledTile.x;
-      const diffY = playerTiledTile.y - monsterTiledTile.y;
-
-      let dx = 0,
-        dy = 0;
-
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        dx = diffX > 0 ? 1 : -1;
-        if (!towards) dx = -dx;
-
-        if (this.canMoveTo(monsterTiledTile.x + dx, monsterTiledTile.y)) {
-          return { dx, dy: 0 };
-        }
-
-        dy = diffY > 0 ? 1 : -1;
-        if (!towards) dy = -dy;
-
-        if (this.canMoveTo(monsterTiledTile.x, monsterTiledTile.y + dy)) {
-          return { dx: 0, dy };
-        }
-      } else {
-        dy = diffY > 0 ? 1 : -1;
-        if (!towards) dy = -dy;
-
-        if (this.canMoveTo(monsterTiledTile.x, monsterTiledTile.y + dy)) {
-          return { dx: 0, dy };
-        }
-
-        dx = diffX > 0 ? 1 : -1;
-        if (!towards) dx = -dx;
-
-        if (this.canMoveTo(monsterTiledTile.x + dx, monsterTiledTile.y)) {
-          return { dx, dy: 0 };
-        }
-      }
-
-      // Try alternative directions
-      const directions = [
-        { dx: 1, dy: 0 },
-        { dx: -1, dy: 0 },
-        { dx: 0, dy: 1 },
-        { dx: 0, dy: -1 },
-      ];
-
-      for (let i = directions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [directions[i], directions[j]] = [directions[j], directions[i]];
-      }
-
-      for (const dir of directions) {
-        if (this.canMoveTo(monsterTiledTile.x + dir.dx, monsterTiledTile.y + dir.dy)) {
-          return dir;
-        }
-      }
-
-      return null;
+      return this.calculateMovementDirection(monsterTile, diffX, diffY, towards);
     } catch (error) {
-      console.error(`Error in monster ${this.entity.id} calculateNextMove:`, error);
       eventBus.emit("error.monster.pathfinding", {
         entityId: this.entity.id,
         error,
@@ -451,41 +360,103 @@ export class MonsterMovementComponent extends MovementComponent {
     }
   }
 
+  private calculateMovementDirection(
+    monsterTile: { x: number; y: number },
+    diffX: number,
+    diffY: number,
+    towards: boolean
+  ): { dx: number; dy: number } | null {
+    let dx = 0,
+      dy = 0;
+
+    // Prioritize horizontal or vertical movement
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      dx = diffX > 0 ? 1 : -1;
+      if (!towards) dx = -dx;
+
+      if (this.canMoveTo(monsterTile.x + dx, monsterTile.y)) {
+        return { dx, dy: 0 };
+      }
+
+      // Try vertical as fallback
+      dy = diffY > 0 ? 1 : -1;
+      if (!towards) dy = -dy;
+
+      if (this.canMoveTo(monsterTile.x, monsterTile.y + dy)) {
+        return { dx: 0, dy };
+      }
+    } else {
+      dy = diffY > 0 ? 1 : -1;
+      if (!towards) dy = -dy;
+
+      if (this.canMoveTo(monsterTile.x, monsterTile.y + dy)) {
+        return { dx: 0, dy };
+      }
+
+      // Try horizontal as fallback
+      dx = diffX > 0 ? 1 : -1;
+      if (!towards) dx = -dx;
+
+      if (this.canMoveTo(monsterTile.x + dx, monsterTile.y)) {
+        return { dx, dy: 0 };
+      }
+    }
+
+    // Try random directions if direct path blocked
+    return this.findAlternativeDirection(monsterTile);
+  }
+
+  private findAlternativeDirection(monsterTile: {
+    x: number;
+    y: number;
+  }): { dx: number; dy: number } | null {
+    const directions = [
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 0 },
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: -1 },
+    ];
+
+    // Randomize direction order
+    for (let i = directions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [directions[i], directions[j]] = [directions[j], directions[i]];
+    }
+
+    // Find first valid direction
+    for (const dir of directions) {
+      if (this.canMoveTo(monsterTile.x + dir.dx, monsterTile.y + dir.dy)) {
+        return dir;
+      }
+    }
+
+    return null;
+  }
+
   canMoveTo(tileX: number, tileY: number): boolean {
     try {
       const gameScene = this.entity.scene as any;
 
-      if (!gameScene.groundLayer) return false;
+      // Safety checks
+      if (gameScene.isChangingMap || !gameScene.groundLayer || !this.entity.active) {
+        return false;
+      }
 
-      // FIXED: Use MapService to convert to local coordinates for collision checking
       const worldPos = this.tiledTileToWorld(tileX, tileY);
       const localTileX = Math.floor(worldPos.x / this.tileSize);
       const localTileY = Math.floor(worldPos.y / this.tileSize);
 
+      // Check collision layer
       if (gameScene.collisionLayer) {
         const tile = gameScene.collisionLayer.getTileAt(localTileX, localTileY);
-        if (tile && tile.collides) {
-          console.log(`Cannot move to Tiled tile (${tileX}, ${tileY}) - collision detected`);
+        if (tile?.collides) {
           return false;
-        }
-      }
-
-      // Check for other monsters at the same Tiled tile position
-      if (gameScene.monsters) {
-        const monsters = gameScene.monsters.getChildren();
-        for (const monster of monsters) {
-          if (monster === this.entity) continue;
-
-          const monsterTiledTile = this.worldToTiledTile(monster.x, monster.y);
-          if (monsterTiledTile.x === tileX && monsterTiledTile.y === tileY) {
-            return false;
-          }
         }
       }
 
       return true;
     } catch (error) {
-      console.error(`Error in monster ${this.entity.id} canMoveTo:`, error);
+      // If there's any error, assume movement is not safe
       return false;
     }
   }
@@ -627,6 +598,92 @@ export class MonsterMovementComponent extends MovementComponent {
         error,
       });
     }
+  }
+
+  private wander(): void {
+    try {
+      if (this.monster.isDead || this.isAggressive || this.isProvoked || this.moveInProgress) {
+        return;
+      }
+
+      const gameScene = this.entity.scene as any;
+      if (gameScene.isChangingMap) {
+        return;
+      }
+
+      // 70% chance to just play animation without moving
+      if (Math.random() < 0.7) {
+        const directions = ["down", "left", "up", "right"];
+        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+        this.monster.playAnimation(randomDirection, false);
+        return;
+      }
+
+      const currentTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+      const initialTile = this.worldToTiledTile(this.initialPosition.x, this.initialPosition.y);
+
+      const movement = this.calculateWanderMovement(currentTile, initialTile);
+
+      if (movement && this.canMoveTo(currentTile.x + movement.dx, currentTile.y + movement.dy)) {
+        this.moveToTile(currentTile.x + movement.dx, currentTile.y + movement.dy);
+
+        eventBus.emit("monster.wandering", {
+          entityId: this.entity.id,
+          direction:
+            movement.dx !== 0
+              ? movement.dx > 0
+                ? "right"
+                : "left"
+              : movement.dy > 0
+                ? "down"
+                : "up",
+        });
+      }
+    } catch (error) {
+      eventBus.emit("error.monster.wander", {
+        entityId: this.entity.id,
+        error,
+      });
+    }
+  }
+
+  private calculateWanderMovement(
+    currentTile: { x: number; y: number },
+    initialTile: { x: number; y: number }
+  ): { dx: number; dy: number } | null {
+    const distFromInitial = Math.sqrt(
+      Math.pow(currentTile.x - initialTile.x, 2) + Math.pow(currentTile.y - initialTile.y, 2)
+    );
+
+    let dx = 0,
+      dy = 0;
+
+    if (distFromInitial > this.wanderRange / this.tileSize) {
+      // Return to initial position
+      if (currentTile.x < initialTile.x) dx = 1;
+      else if (currentTile.x > initialTile.x) dx = -1;
+      else if (currentTile.y < initialTile.y) dy = 1;
+      else if (currentTile.y > initialTile.y) dy = -1;
+    } else {
+      // Random movement
+      const randomDirection = Math.floor(Math.random() * 4);
+      switch (randomDirection) {
+        case 0:
+          dx = 1;
+          break;
+        case 1:
+          dx = -1;
+          break;
+        case 2:
+          dy = 1;
+          break;
+        case 3:
+          dy = -1;
+          break;
+      }
+    }
+
+    return { dx, dy };
   }
 
   destroy(): void {
