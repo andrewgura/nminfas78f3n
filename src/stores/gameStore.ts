@@ -228,7 +228,7 @@ const initialCalculatedStats: CalculatedStats = {
   totalPower: 0,
   totalArmor: 0,
   totalMoveSpeed: 1,
-  actualMoveSpeed: 100,
+  actualMoveSpeed: 250,
   totalAttackSpeed: 1,
   totalHealthRegen: 1,
   totalManaRegen: 1,
@@ -250,8 +250,8 @@ const initialCalculatedStats: CalculatedStats = {
 // Initial state
 const initialState = {
   playerCharacter: {
-    health: 2000,
-    maxHealth: 2000,
+    health: 100,
+    maxHealth: 100,
     lastAttackTime: 0,
     experience: 0,
     equipment: {

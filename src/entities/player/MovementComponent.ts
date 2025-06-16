@@ -1,6 +1,7 @@
 import { Component } from "../Component";
 import { Character } from "../Character";
 import { eventBus } from "@/utils/EventBus";
+import { useGameStore } from "@/stores/gameStore";
 
 interface Scene extends Phaser.Scene {
   collisionLayer?: Phaser.Tilemaps.TilemapLayer;
@@ -11,14 +12,68 @@ export class MovementComponent extends Component {
   tileSize: number = 32;
   facing: string = "down";
   isMoving: boolean = false;
-  moveSpeed: number = 100;
+  private moveSpeed: number = 100; // Default fallback value
 
   constructor(entity: Character) {
     super(entity);
+
+    // Initialize move speed from GameStore
+    this.updateMoveSpeedFromStore();
+
+    // Listen for move speed updates
+    eventBus.on("player.moveSpeed.updated", this.handleMoveSpeedUpdate.bind(this));
+  }
+
+  /**
+   * Update move speed from GameStore calculated stats
+   */
+  private updateMoveSpeedFromStore(): void {
+    try {
+      const gameState = useGameStore.getState();
+
+      // Use actualMoveSpeed (internal value for movement timing)
+      // Lower values = faster movement
+      this.moveSpeed = gameState.calculatedStats.actualMoveSpeed;
+
+      console.log(`MovementComponent: Updated move speed to ${this.moveSpeed}`);
+    } catch (error) {
+      console.error("Error updating move speed from store:", error);
+      // Keep default fallback value
+    }
+  }
+
+  /**
+   * Handle move speed update events from GameStore
+   */
+  private handleMoveSpeedUpdate(data: { newSpeed: number; displaySpeed: number }): void {
+    try {
+      // Update our internal move speed with the new actualMoveSpeed
+      this.moveSpeed = data.newSpeed;
+
+      console.log(
+        `MovementComponent: Move speed updated to ${this.moveSpeed} (display: ${data.displaySpeed})`
+      );
+
+      // Emit event for other systems that might need to know
+      eventBus.emit("entity.movement.speed.updated", {
+        entityId: this.entity.id,
+        newSpeed: this.moveSpeed,
+        displaySpeed: data.displaySpeed,
+      });
+    } catch (error) {
+      console.error("Error handling move speed update:", error);
+    }
   }
 
   get character(): Character {
     return this.entity as Character;
+  }
+
+  /**
+   * Get current move speed (mainly for debugging/external access)
+   */
+  getMoveSpeed(): number {
+    return this.moveSpeed;
   }
 
   moveToPosition(x: number, y: number, time: number): void {
@@ -33,14 +88,15 @@ export class MovementComponent extends Component {
         entityId: this.entity.id,
         position: { x, y },
         time,
+        moveSpeed: this.moveSpeed,
       });
 
-      // Use tweening for smooth movement
+      // Use tweening for smooth movement with dynamic move speed
       this.entity.scene.tweens.add({
         targets: this.entity,
         x: x,
         y: y,
-        duration: this.moveSpeed,
+        duration: this.moveSpeed, // Now uses the actual calculated move speed
         ease: "Linear",
         onComplete: () => {
           this.isMoving = false;
@@ -49,6 +105,7 @@ export class MovementComponent extends Component {
           eventBus.emit("entity.movement.complete", {
             entityId: this.entity.id,
             position: { x, y },
+            moveSpeed: this.moveSpeed,
           });
         },
       });
@@ -102,14 +159,14 @@ export class MovementComponent extends Component {
 
   collidesWithTerrain(scene: Phaser.Scene, x: number, y: number): boolean {
     try {
-      const gameScene = scene as Scene;
-      if (!gameScene.collisionLayer) return false;
+      const sceneWithCollision = scene as Scene;
+      if (!sceneWithCollision.collisionLayer) return false;
 
-      const tileX = Math.floor((x - gameScene.collisionLayer.x) / this.tileSize);
-      const tileY = Math.floor((y - gameScene.collisionLayer.y) / this.tileSize);
-      const tile = gameScene.collisionLayer.getTileAt(tileX, tileY);
+      const tileX = Math.floor(x / this.tileSize);
+      const tileY = Math.floor(y / this.tileSize);
 
-      return tile?.collides || false;
+      const tile = sceneWithCollision.collisionLayer.getTileAt(tileX, tileY);
+      return tile !== null;
     } catch (error) {
       console.error("Error in MovementComponent.collidesWithTerrain:", error);
       return false;
@@ -118,28 +175,52 @@ export class MovementComponent extends Component {
 
   collidesWithEntity(scene: Phaser.Scene, x: number, y: number): boolean {
     try {
-      const targetTileX = Math.floor(x / this.tileSize);
-      const targetTileY = Math.floor(y / this.tileSize);
+      const sceneWithMonsters = scene as Scene;
+      if (!sceneWithMonsters.monsters) return false;
 
-      // Check for collision with monsters
-      const gameScene = scene as Scene;
-      if (gameScene.monsters) {
-        const collides = gameScene.monsters.getChildren().some((monster: any) => {
-          if (monster === this.entity) return false; // Don't collide with self
+      const monsters = sceneWithMonsters.monsters.children.entries;
+      for (const monster of monsters) {
+        if (!monster.active) continue;
 
-          const monsterTileX = Math.floor(monster.x / this.tileSize);
-          const monsterTileY = Math.floor(monster.y / this.tileSize);
-
-          return monsterTileX === targetTileX && monsterTileY === targetTileY;
-        });
-
-        if (collides) return true;
+        const distance = Phaser.Math.Distance.Between(x, y, monster.x, monster.y);
+        if (distance < this.tileSize) {
+          return true;
+        }
       }
 
       return false;
     } catch (error) {
       console.error("Error in MovementComponent.collidesWithEntity:", error);
       return false;
+    }
+  }
+
+  updateFacing(direction: { dx: number; dy: number }): void {
+    try {
+      if (direction.dx > 0) this.facing = "right";
+      else if (direction.dx < 0) this.facing = "left";
+      else if (direction.dy > 0) this.facing = "down";
+      else if (direction.dy < 0) this.facing = "up";
+
+      // Emit facing change event
+      eventBus.emit("entity.facing.changed", {
+        entityId: this.entity.id,
+        facing: this.facing,
+      });
+    } catch (error) {
+      console.error("Error in MovementComponent.updateFacing:", error);
+    }
+  }
+
+  /**
+   * Clean up event listeners when component is destroyed
+   */
+  destroy(): void {
+    try {
+      eventBus.off("player.moveSpeed.updated", this.handleMoveSpeedUpdate.bind(this));
+      super.destroy();
+    } catch (error) {
+      console.error("Error destroying MovementComponent:", error);
     }
   }
 }
