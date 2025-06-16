@@ -6,6 +6,7 @@ import { PlayerItemInteractionComponent } from "./player/PlayerItemInteractionCo
 import { eventBus } from "@/utils/EventBus";
 import { useGameStore } from "@/stores/gameStore";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
+import { DamageFormulas } from "@/utils/formulas";
 
 export class PlayerCharacter extends Character {
   equipment: any;
@@ -217,25 +218,38 @@ export class PlayerCharacter extends Character {
     }
   }
 
-  takeDamage(amount: number): boolean {
+  takeDamage(amount: number, isMagicDamage: boolean = false): boolean {
     try {
       // Skip if already dead
       if (this.isDead) return false;
 
-      // Calculate new health but prevent it from going below 0
-      const newHealth = Math.max(0, this.health - amount);
+      // Get current player state from store
+      const store = useGameStore.getState();
+      const equipment = store.playerCharacter.equipment;
+      const skills = store.playerCharacter.skills;
+
+      // Calculate final damage using our new formulas
+      const finalDamage = DamageFormulas.calculatePlayerDamageTaken(
+        amount,
+        equipment,
+        skills,
+        isMagicDamage
+      );
+
+      // Calculate new health
+      const newHealth = Math.max(0, this.health - finalDamage);
 
       // Emit damage taken event for UI effects
-      eventBus.emit("playerCharacter.damage.taken", amount);
+      eventBus.emit("playerCharacter.damage.taken", finalDamage);
 
-      // Award shield skill points when taking damage
-      const store = useGameStore.getState();
-      if (store.playerCharacter.skills.shield) {
+      // Award shield skill points when taking damage (only if shield equipped and physical damage)
+      if (!isMagicDamage && equipment.shield && store.playerCharacter.skills.shield) {
         const currentExp = store.playerCharacter.skills.shield.experience;
-        store.updateSkill("shield", currentExp + 2);
+        const expGained = Math.max(1, Math.floor(finalDamage * 0.5));
+        store.updateSkill("shield", currentExp + expGained);
       }
 
-      // Update health (using parent method from Character)
+      // Update health
       this.health = newHealth;
 
       // Set to dead if health reaches 0
@@ -247,10 +261,8 @@ export class PlayerCharacter extends Character {
       // Update global game state health
       useGameStore.getState().updatePlayerHealth(this.health);
 
-      // Store original alpha before tweening
+      // Visual effects (existing code)
       const originalAlpha = this.alpha;
-
-      // Flash red and add visual effects
       this.scene.tweens.add({
         targets: this,
         alpha: 0.7,
@@ -265,13 +277,13 @@ export class PlayerCharacter extends Character {
         },
       });
 
-      // Shake the camera when taking significant damage
-      if (amount > this.maxHealth * 0.1) {
+      // Shake camera for significant damage
+      if (finalDamage > this.maxHealth * 0.1) {
         this.scene.cameras.main.shake(250, 0.01);
       }
 
       // Show floating damage number
-      this.showDamageNumber(amount);
+      this.showDamageNumber(finalDamage);
 
       return false;
     } catch (error) {

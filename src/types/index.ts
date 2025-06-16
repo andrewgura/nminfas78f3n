@@ -268,6 +268,7 @@ export interface PlayerCharacterSkills {
   meleeWeapons: SkillData;
   archery: SkillData;
   magic: SkillData;
+  shield: SkillData;
   [key: string]: SkillData;
 }
 

@@ -3,6 +3,7 @@ import { eventBus } from "../utils/EventBus";
 import { useGameStore } from "../stores/gameStore";
 import { ItemDictionary } from "./ItemDictionaryService";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
+import { DamageFormulas } from "@/utils/formulas";
 
 class AutoAttackSystemService {
   private targetedEnemy: any | null = null;
@@ -450,19 +451,14 @@ class AutoAttackSystemService {
     // Read from GameStore (single source of truth)
     const store = useGameStore.getState();
     const equipment = store.playerCharacter.equipment;
+    const skills = store.playerCharacter.skills;
 
-    // Base damage
-    let damage = 5;
-
-    // Weapon damage
-    if (equipment.weapon) {
-      const weaponData = ItemInstanceManager.getCombinedStats(equipment.weapon);
-      if (weaponData.power) {
-        damage = weaponData.power;
-      }
-    }
-
-    return damage;
+    // Use our new damage formula
+    return DamageFormulas.calculatePlayerAutoAttackDamage(
+      equipment,
+      skills,
+      this.currentWeaponType
+    );
   }
 
   /**

@@ -1,6 +1,7 @@
 import { Component } from "../Component";
 import { Monster } from "../Monster";
 import { MonsterMovementComponent } from "./MonsterMovementComponent";
+import { DamageFormulas } from "@/utils/formulas"; // ADDED: Only new import
 import { eventBus } from "@/utils/EventBus";
 
 export class MonsterCombatComponent extends Component {
@@ -94,14 +95,18 @@ export class MonsterCombatComponent extends Component {
       // Create attack effect
       this.createAttackEffect(player.x, player.y);
 
-      // Call player's takeDamage method directly instead of manually updating health
-      player.takeDamage(this.damage);
+      // CHANGED: Calculate damage using formulas and determine if magic
+      const finalDamage = DamageFormulas.calculateMonsterDamage(this.damage, 1);
+      const isMagicDamage = DamageFormulas.isMagicDamage(this.attackType);
+
+      // CHANGED: Call player's takeDamage method with calculated damage and magic flag
+      player.takeDamage(finalDamage, isMagicDamage);
 
       // Emit attack event
       eventBus.emit("monster.attack.hit", {
         entityId: this.entity.id,
         targetId: "player",
-        damage: this.damage,
+        damage: finalDamage, // CHANGED: Use calculated damage
         attackType: this.attackType,
         direction: direction,
       });

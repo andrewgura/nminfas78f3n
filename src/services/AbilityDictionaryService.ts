@@ -25,7 +25,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         description: "A basic sword attack that deals damage to enemies in front of you.",
         icon: "assets/abilities/sword-slash.png",
         cooldown: 1,
-        damage: 45,
+        damage: 2,
         weaponType: "weapon",
         requiredWeapon: "melee",
         skillId: "meleeWeapons",
@@ -44,7 +44,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         description: "Spin around with your sword, damaging all nearby enemies.",
         icon: "assets/abilities/whirlwind.png",
         cooldown: 1,
-        damage: 46,
+        damage: 1,
         weaponType: "weapon",
         requiredWeapon: "melee",
         skillId: "meleeWeapons",
@@ -64,7 +64,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         description: "A powerful strike that stuns enemies directly in front of you.",
         icon: "assets/abilities/bash.png",
         cooldown: 1,
-        damage: 30,
+        damage: 3,
         weaponType: "weapon",
         requiredWeapon: "melee",
         skillId: "meleeWeapons",
@@ -87,7 +87,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
           "Launch a ball of fire that travels in a straight line, exploding on impact with enemies or obstacles.",
         icon: "assets/abilities/fireball.png",
         cooldown: 1,
-        damage: 15,
+        damage: 3,
         weaponType: "weapon",
         requiredWeapon: "magic",
         skillId: "magic",
@@ -109,7 +109,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         description: "Create an expanding ring of ice that damages and slows enemies.",
         icon: "assets/abilities/ice_nova.png",
         cooldown: 1,
-        damage: 10,
+        damage: 2,
         weaponType: "weapon",
         requiredWeapon: "magic",
         skillId: "magic",
@@ -133,7 +133,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
           "Create a wall of fire that damages enemies passing through it every 0.5 seconds.",
         icon: "assets/abilities/firewall.png",
         cooldown: 1, // Increased cooldown to balance continuous damage
-        damage: 8, // Damage per tick (every 0.5 seconds)
+        damage: 1, // Damage per tick (every 0.5 seconds)
         weaponType: "weapon",
         requiredWeapon: "magic",
         skillId: "magic",
@@ -158,7 +158,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
           "Release a powerful wave of arcane energy that damages enemies in a cone in front of you.",
         icon: "assets/abilities/energy-wave.png",
         cooldown: 2,
-        damage: 16,
+        damage: 2,
         weaponType: "weapon",
         requiredWeapon: "magic",
         skillId: "magic",
@@ -179,7 +179,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
         description: "Fire a high-velocity arrow that pierces through enemies in a straight line.",
         icon: "assets/abilities/power-shot.png",
         cooldown: 1,
-        damage: 12,
+        damage: 2,
         weaponType: "weapon",
         requiredWeapon: "archery",
         skillId: "archery",
@@ -221,7 +221,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
           "Create a storm of arrows at your target location, dealing damage to all enemies in the area.",
         icon: "assets/abilities/rain-of-arrows.png",
         cooldown: 1,
-        damage: 8, // Damage per tick
+        damage: 1, // Damage per tick
         weaponType: "weapon",
         requiredWeapon: "archery",
         skillId: "archery",
@@ -262,10 +262,12 @@ class AbilityDictionaryService implements IAbilityDictionary {
 
       // Emit initialization event
       eventBus.emit("abilityDictionary.initialized", {
-        count: Object.keys(this.abilityDatabase).length
+        count: Object.keys(this.abilityDatabase).length,
       });
-      
-      console.log(`AbilityDictionary initialized with ${Object.keys(this.abilityDatabase).length} abilities`);
+
+      console.log(
+        `AbilityDictionary initialized with ${Object.keys(this.abilityDatabase).length} abilities`
+      );
     } catch (error) {
       console.error("Error initializing abilities:", error);
     }
@@ -306,7 +308,7 @@ class AbilityDictionaryService implements IAbilityDictionary {
       return "none";
     }
   }
-  
+
   getAllAbilities(): Ability[] {
     return Object.values(this.abilityDatabase);
   }

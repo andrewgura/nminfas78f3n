@@ -2,6 +2,8 @@ import { AnimationStrategy } from "./AnimationStrategy";
 import { Monster } from "@/entities/Monster";
 import { PlayerCharacter } from "@/entities/PlayerCharacter";
 import { Ability } from "@/types";
+import { DamageFormulas } from "@/utils/formulas";
+import { useGameStore } from "@/stores/gameStore";
 import { eventBus } from "@/utils/EventBus";
 
 /**
@@ -28,6 +30,68 @@ export abstract class BaseStrategy implements AnimationStrategy {
    */
   getObjectTypesForPositioning(): string[] {
     return []; // Default implementation
+  }
+
+  /**
+   * Apply ability damage to a single monster using new damage formulas
+   */
+  protected applyAbilityDamageToMonster(
+    monster: Monster,
+    ability: Ability,
+    debug: boolean = false
+  ): void {
+    try {
+      if (!monster.active || !monster.takeDamage) return;
+
+      // Get player state for damage calculation
+      const store = useGameStore.getState();
+      const equipment = store.playerCharacter.equipment;
+      const skills = store.playerCharacter.skills;
+
+      // Calculate final damage using our formulas
+      const finalDamage = DamageFormulas.calculatePlayerAbilityFinalDamage(
+        ability.damage || 0,
+        equipment,
+        skills, // This now accepts 'any' type
+        ability.skillId || "meleeWeapons",
+        monster.armor // This should now work since we added armor property
+      );
+
+      // Determine if this is magic damage
+      const isMagicDamage = DamageFormulas.isMagicDamage(undefined, ability.skillId);
+
+      if (debug) {
+        console.log(
+          `Ability ${ability.id} dealing ${finalDamage} damage to monster (magic: ${isMagicDamage})`
+        );
+      }
+
+      // Apply damage to monster
+      monster.takeDamage(finalDamage, isMagicDamage);
+
+      // Show damage effect
+      this.showDamageEffect(monster.scene, monster, finalDamage);
+
+      // Award skill experience
+      this.awardSkillExperience(ability.skillId || "meleeWeapons", finalDamage);
+    } catch (error) {
+      console.error("Error applying ability damage to monster:", error);
+    }
+  }
+
+  /**
+   * Award skill experience for dealing damage
+   */
+  private awardSkillExperience(skillId: string, damage: number): void {
+    try {
+      const store = useGameStore.getState();
+      const currentExp = store.playerCharacter.skills[skillId]?.experience || 0;
+      const expGained = Math.max(1, Math.floor(damage * 0.3));
+
+      store.updateSkill(skillId, currentExp + expGained);
+    } catch (error) {
+      console.error("Error awarding skill experience:", error);
+    }
   }
 
   /**
@@ -77,6 +141,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
         debugGraphics.strokeRect(pos.x - tileSize / 2, pos.y - tileSize / 2, tileSize, tileSize);
       });
 
+      debugGraphics.setDepth(10);
       return debugGraphics;
     } catch (error) {
       console.error("Error in BaseStrategy.createDebugVisualization:", error);
@@ -85,13 +150,13 @@ export abstract class BaseStrategy implements AnimationStrategy {
   }
 
   /**
-   * Applies damage to monsters located in the affected tiles
+   * Applies damage to monsters located in the affected tiles using new damage formulas
    * @returns Number of monsters hit
    */
   protected applyDamageToMonstersInTiles(
     scene: Phaser.Scene,
     tilePositions: { x: number; y: number }[],
-    damage: number,
+    ability: Ability,
     debug: boolean = false
   ): number {
     try {
@@ -123,15 +188,12 @@ export abstract class BaseStrategy implements AnimationStrategy {
         }
 
         if (isInAffectedTile) {
-          // Monster is in an affected tile - apply damage
-          if (monster.takeDamage) {
-            monster.takeDamage(damage);
-            this.showDamageEffect(scene, monster, damage);
-            hitCount++;
+          // Monster is in an affected tile - apply damage using new formula
+          this.applyAbilityDamageToMonster(monster, ability, debug);
+          hitCount++;
 
-            // Visual feedback for hits
-            this.createHitEffect(scene, monster);
-          }
+          // Visual feedback for hits
+          this.createHitEffect(scene, monster);
         }
       });
 
@@ -143,7 +205,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
   }
 
   /**
-   * Applies damage to monsters within a circular area
+   * Applies damage to monsters within a circular area using new damage formulas
    * @returns Number of monsters hit
    */
   protected applyDamageInCircle(
@@ -151,7 +213,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
     centerX: number,
     centerY: number,
     radius: number,
-    damage: number,
+    ability: Ability,
     excludeMonster: Monster | null = null,
     debug: boolean = false
   ): number {
@@ -173,23 +235,16 @@ export abstract class BaseStrategy implements AnimationStrategy {
         const distance = Phaser.Math.Distance.Between(centerX, centerY, monster.x, monster.y);
 
         if (distance <= radius) {
-          // Apply damage with falloff based on distance
-          const falloff = 1 - distance / radius;
-          const actualDamage = Math.max(1, Math.floor(damage * falloff));
-
-          if (monster.takeDamage) {
-            if (debug) {
-              console.log(
-                `Circle damage to monster at distance ${distance.toFixed(1)}, applying ${actualDamage} damage`
-              );
-            }
-            monster.takeDamage(actualDamage);
-            this.showDamageEffect(scene, monster, actualDamage);
-            hitCount++;
-
-            // Visual feedback for hits
-            this.createHitEffect(scene, monster);
+          if (debug) {
+            console.log(`Circle damage to monster at distance ${distance.toFixed(1)}`);
           }
+
+          // Apply damage using new formula
+          this.applyAbilityDamageToMonster(monster, ability, debug);
+          hitCount++;
+
+          // Visual feedback for hits
+          this.createHitEffect(scene, monster);
         }
       });
 
@@ -226,7 +281,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
   }
 
   /**
-   * Applies damage to monsters along a line (useful for piercing shots)
+   * Applies damage to monsters along a line (useful for piercing shots) using new damage formulas
    * @returns Number of monsters hit
    */
   protected applyDamageInLine(
@@ -236,7 +291,7 @@ export abstract class BaseStrategy implements AnimationStrategy {
     endX: number,
     endY: number,
     width: number,
-    damage: number,
+    ability: Ability,
     hitMonsters: Set<Monster> = new Set(),
     debug: boolean = false
   ): number {
@@ -255,20 +310,17 @@ export abstract class BaseStrategy implements AnimationStrategy {
 
         if (distance <= width / 2 + 16) {
           // Adding monster radius
-          if (monster.takeDamage) {
-            if (debug) {
-              console.log(
-                `Line damage to monster at distance ${distance.toFixed(1)} from line, damage: ${damage}`
-              );
-            }
-            monster.takeDamage(damage);
-            this.showDamageEffect(scene, monster, damage);
-            hitCount++;
-            hitMonsters.add(monster);
-
-            // Visual feedback for hits
-            this.createHitEffect(scene, monster);
+          if (debug) {
+            console.log(`Line damage to monster at distance ${distance.toFixed(1)} from line`);
           }
+
+          // Apply damage using new formula
+          this.applyAbilityDamageToMonster(monster, ability, debug);
+          hitCount++;
+          hitMonsters.add(monster);
+
+          // Visual feedback for hits
+          this.createHitEffect(scene, monster);
         }
       });
 
@@ -394,6 +446,36 @@ export abstract class BaseStrategy implements AnimationStrategy {
   }
 
   /**
+   * Fixed rotation method for patterns (more reliable)
+   */
+  protected rotatePatternFixed(pattern: number[][], facing: string): number[][] {
+    try {
+      // If facing up, no rotation needed (base pattern)
+      if (facing === "up") return pattern;
+
+      return pattern.map(([x, y]) => {
+        // Apply rotation based on facing direction
+        switch (facing) {
+          case "right":
+            // 90° clockwise: (x,y) -> (-y,x)
+            return [-y, x];
+          case "down":
+            // 180°: (x,y) -> (-x,-y)
+            return [-x, -y];
+          case "left":
+            // 90° counter-clockwise: (x,y) -> (y,-x)
+            return [y, -x];
+          default:
+            return [x, y];
+        }
+      });
+    } catch (error) {
+      console.error("Error in BaseStrategy.rotatePatternFixed:", error);
+      return pattern; // Return original pattern on error
+    }
+  }
+
+  /**
    * Creates cleanup timer for animations
    */
   protected setupCleanupTimer(
@@ -404,34 +486,114 @@ export abstract class BaseStrategy implements AnimationStrategy {
     abilityId: string,
     onCleanup?: () => void
   ): void {
-    scene.time.delayedCall(effectDuration, () => {
-      gameObjects.forEach((obj) => {
-        if (obj.active) obj.destroy();
-      });
-      activeAnimations.delete(abilityId);
+    try {
+      scene.time.delayedCall(effectDuration, () => {
+        // Clean up game objects
+        gameObjects.forEach((obj) => {
+          if (obj && obj.active) {
+            obj.destroy();
+          }
+        });
 
-      if (onCleanup) {
-        onCleanup();
-      }
-    });
+        // Remove from active animations
+        activeAnimations.delete(abilityId);
+
+        // Call optional cleanup callback
+        if (onCleanup) {
+          onCleanup();
+        }
+      });
+    } catch (error) {
+      console.error("Error in BaseStrategy.setupCleanupTimer:", error);
+    }
   }
 
   /**
-   * Gets the mouse position in world coordinates - useful for targeted abilities
+   * Get mouse world position for abilities that target cursor
    */
   protected getMouseWorldPosition(scene: Phaser.Scene): { x: number; y: number } | null {
     try {
-      const pointer = scene.input.activePointer;
-      if (!pointer) return null;
+      const input = scene.input;
+      if (!input.activePointer) return null;
 
-      // Convert screen coordinates to world coordinates
-      return {
-        x: pointer.worldX,
-        y: pointer.worldY,
-      };
+      const camera = scene.cameras.main;
+      const worldX = input.activePointer.worldX;
+      const worldY = input.activePointer.worldY;
+
+      return { x: worldX, y: worldY };
     } catch (error) {
-      console.error("Error getting mouse position:", error);
+      console.error("Error in BaseStrategy.getMouseWorldPosition:", error);
       return null;
+    }
+  }
+
+  /**
+   * Generate area tiles in a grid pattern
+   */
+  protected generateAreaTiles(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number
+  ): { x: number; y: number }[] {
+    try {
+      const tiles: { x: number; y: number }[] = [];
+      const halfWidth = Math.floor(width / 2);
+      const halfHeight = Math.floor(height / 2);
+
+      for (let x = -halfWidth; x <= halfWidth; x++) {
+        for (let y = -halfHeight; y <= halfHeight; y++) {
+          tiles.push({
+            x: centerX + x * this.TILE_SIZE,
+            y: centerY + y * this.TILE_SIZE,
+          });
+        }
+      }
+
+      return tiles;
+    } catch (error) {
+      console.error("Error in BaseStrategy.generateAreaTiles:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Create tile highlights for visual effects
+   */
+  protected createTileHighlights(
+    scene: Phaser.Scene,
+    positions: { x: number; y: number }[],
+    duration: number,
+    config: any,
+    gameObjects: Phaser.GameObjects.GameObject[]
+  ): void {
+    try {
+      const colors = config.particleColors || [0xff0000, 0xff7700, 0xffff00];
+
+      positions.forEach((pos) => {
+        // Create tile highlight
+        const highlight = scene.add.rectangle(
+          pos.x,
+          pos.y,
+          this.TILE_SIZE,
+          this.TILE_SIZE,
+          colors[0],
+          0.4
+        );
+        highlight.setDepth(5);
+        gameObjects.push(highlight);
+
+        // Animate the highlight
+        scene.tweens.add({
+          targets: highlight,
+          alpha: 0,
+          scale: 1.2,
+          duration: duration,
+          ease: "Sine.easeOut",
+        });
+      });
+    } catch (error) {
+      console.error("Error in BaseStrategy.createTileHighlights:", error);
     }
   }
 }

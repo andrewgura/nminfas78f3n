@@ -4,6 +4,7 @@ import { MonsterCombatComponent } from "./monster/MonsterCombatComponent";
 import { MonsterDropComponent } from "./monster/MonsterDropComponent";
 import { MonsterMovementComponent } from "./monster/MonsterMovementComponent";
 import { HealthComponent } from "./HealthComponent";
+import { DamageFormulas } from "@/utils/formulas"; // ADDED: Only new import
 import { eventBus } from "@/utils/EventBus";
 import { MonsterDictionary } from "@/services/MonsterDictionaryService";
 import { MonsterAnimationSystem } from "@/services/MonsterAnimationSystems";
@@ -13,6 +14,7 @@ export class Monster extends Character {
   monsterType!: string;
   monsterName!: string;
   experience!: number;
+  armor!: number; // ADDED: Only new property
   facing: string = "down";
   isMoving: boolean = false;
   isAggressive: boolean = false;
@@ -37,6 +39,7 @@ export class Monster extends Character {
       this.health = monsterData?.health || 100;
       this.maxHealth = monsterData?.maxHealth || 100;
       this.experience = monsterData?.experience || 10;
+      this.armor = monsterData?.armor || 0; // ADDED: Only new line
       this.isAggressive = monsterData?.isAggressive || false;
       this.spriteSize = monsterData?.spriteSize || 64;
 
@@ -223,13 +226,21 @@ export class Monster extends Character {
     }
   }
 
-  takeDamage(amount: number): boolean {
+  takeDamage(amount: number, isMagicDamage: boolean = false): boolean {
+    // MODIFIED: Added isMagicDamage parameter
     try {
       // Monster-specific behavior before damage
       const aiComponent = this.components.get<MonsterAIComponent>("ai");
       if (aiComponent) {
         aiComponent.setProvokedState(true);
       }
+
+      // ADDED: Calculate damage using formulas
+      const finalDamage = DamageFormulas.applyDamageReduction(
+        amount,
+        DamageFormulas.calculateMonsterDamageReduction(this.armor),
+        isMagicDamage
+      );
 
       // Store current alpha
       const originalAlpha = this.alpha;
@@ -253,12 +264,20 @@ export class Monster extends Character {
       eventBus.emit("monster.damage", {
         id: this.id,
         type: this.monsterType,
-        amount: amount,
-        currentHealth: this.health - amount,
+        amount: finalDamage, // MODIFIED: Use calculated damage
+        currentHealth: this.health - finalDamage, // MODIFIED: Use calculated damage
       });
 
-      // Apply damage via parent method
-      return super.takeDamage(amount);
+      // MODIFIED: Apply calculated damage instead of raw amount
+      this.health = Math.max(0, this.health - finalDamage);
+
+      // Check for death
+      if (this.health <= 0 && !this.isDead) {
+        this.die();
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error(`Error applying damage to monster ${this.id}:`, error);
       eventBus.emit("error.monster.damage", { id: this.id, error });

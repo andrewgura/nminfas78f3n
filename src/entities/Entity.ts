@@ -6,6 +6,7 @@ import { eventBus } from "@/utils/EventBus";
 export abstract class Entity extends Phaser.Physics.Arcade.Sprite {
   id: string;
   components!: ComponentManager;
+  color: number | undefined;
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string, id: string) {
     // Snap to grid center on spawn
