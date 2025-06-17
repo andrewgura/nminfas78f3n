@@ -130,12 +130,15 @@ export interface ItemData {
   weaponType?: string;
   isTwoHanded?: boolean;
 
+  // Special Attack
+  specialPower?: number;
+  specialCategory?: ItemCategory; // Melee, Magic, or Ranged. This attack with scale with that Skill
+
   // Stats
   power?: number;
   armor?: number;
   melee?: number;
   magic?: number;
-  strength?: number;
   hpRegen?: number;
   mpRegen?: number;
   capacity?: number;

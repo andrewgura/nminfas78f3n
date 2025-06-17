@@ -8,7 +8,7 @@ import { DamageFormulas } from "@/utils/formulas";
 class AutoAttackSystemService {
   private targetedEnemy: any | null = null;
   private lastAttackTime: number = 0;
-  private attackCooldown: number = 1000; // 1 second between attacks
+  private baseAttackCooldown: number = 2000; // Base 2 seconds for players
   private attackRange: number = 64; // Default range (2 tiles)
   private isAutoAttacking: boolean = false;
   private currentWeaponType: string = "melee"; // Default weapon type
@@ -38,6 +38,34 @@ class AutoAttackSystemService {
 
     // Initialize attack properties
     this.updateAttackProperties();
+  }
+
+  /**
+   * Calculate current attack cooldown based on attack speed
+   * Base: 2000ms (2 seconds)
+   * Attack Speed reduces this by 50ms per point
+   * Minimum: 200ms (0.2 seconds) to prevent too fast attacks
+   */
+  private calculateAttackCooldown(): number {
+    const store = useGameStore.getState();
+    const calculatedStats = store.calculatedStats;
+
+    // Get total attack speed from calculated stats (includes equipment + base)
+    const totalAttackSpeed = calculatedStats?.totalAttackSpeed || 1;
+
+    // Base 2 seconds, reduced by 50ms per attack speed point
+    // Formula: 2000 - ((attackSpeed - 1) * 50)
+    const cooldown = this.baseAttackCooldown - (totalAttackSpeed - 1) * 50;
+
+    // Minimum cooldown of 200ms to prevent too fast attacks
+    return Math.max(200, cooldown);
+  }
+
+  /**
+   * Get current attack cooldown (for UI or other systems)
+   */
+  getCurrentAttackCooldown(): number {
+    return this.calculateAttackCooldown();
   }
 
   /**
@@ -114,29 +142,30 @@ class AutoAttackSystemService {
         switch (this.currentWeaponType) {
           case "melee":
             this.attackRange = 64; // 2 tiles
-            this.attackCooldown = 1000; // 1 second
             break;
           case "archery":
             this.attackRange = 320; // 10 tiles
-            this.attackCooldown = 1200; // 1.2 seconds
             break;
           case "magic":
             this.attackRange = 256; // 8 tiles
-            this.attackCooldown = 1500; // 1.5 seconds
             break;
           default:
             // Default values for other/unknown weapon types
             this.attackRange = 64; // 2 tiles
-            this.attackCooldown = 1000; // 1 second
             this.currentWeaponType = "melee";
             break;
         }
       } else {
         // No weapon equipped - use default values (melee)
         this.attackRange = 48; // 1.5 tiles
-        this.attackCooldown = 1200; // Slower attack speed
         this.currentWeaponType = "melee";
       }
+
+      // Emit event for UI updates (attack speed may have changed)
+      eventBus.emit("player.attackSpeed.updated", {
+        attackCooldown: this.calculateAttackCooldown(),
+        weaponType: this.currentWeaponType,
+      });
     } catch (error) {
       console.error("Error in updateAttackProperties:", error);
     }
@@ -150,24 +179,25 @@ class AutoAttackSystemService {
       const gameScene = this.getGameScene();
       if (!gameScene) return;
 
-      const text = gameScene.add.text(x, y - 20, `-${damage}`, {
-        fontFamily: "Arial",
+      // Create floating damage text
+      const damageText = gameScene.add.text(x, y - 20, damage.toString(), {
         fontSize: "14px",
-        color: "#ff0000",
+        color: "#ffffff",
         stroke: "#000000",
-        strokeThickness: 3,
+        strokeThickness: 2,
       });
 
-      text.setOrigin(0.5);
-      text.setDepth(100);
+      damageText.setDepth(10);
+      damageText.setOrigin(0.5, 0.5);
 
+      // Animate the text
       gameScene.tweens.add({
-        targets: text,
-        y: y - 40,
+        targets: damageText,
+        y: y - 50,
         alpha: 0,
         duration: 1000,
         onComplete: () => {
-          text.destroy();
+          damageText.destroy();
         },
       });
     } catch (error) {
@@ -176,7 +206,7 @@ class AutoAttackSystemService {
   }
 
   /**
-   * Create a visual effect for an attack
+   * Create visual attack effect based on weapon type
    */
   private createAttackEffect(
     scene: Phaser.Scene,
@@ -188,30 +218,28 @@ class AutoAttackSystemService {
     try {
       if (this.currentWeaponType === "melee") {
         // Melee slash effect
-        const slash = scene.add.ellipse(targetX, targetY, 40, 20, 0xffffff, 0.8);
-        slash.setRotation(Phaser.Math.Angle.Between(startX, startY, targetX, targetY));
+        const slash = scene.add.circle(targetX, targetY, 15, 0xffffff, 0.7);
         slash.setDepth(6);
-
-        // Emit melee attack event
-        eventBus.emit("player.attack.impact", {
-          attackType: "melee",
-          position: { x: targetX, y: targetY },
-        });
-
         scene.tweens.add({
           targets: slash,
           alpha: 0,
-          scaleX: 1.5,
-          scaleY: 1.5,
+          scale: 2,
           duration: 200,
           onComplete: () => {
             slash.destroy();
           },
         });
+
+        // Emit melee impact event
+        eventBus.emit("player.attack.impact", {
+          attackType: "melee",
+          position: { x: targetX, y: targetY },
+        });
       } else if (this.currentWeaponType === "archery") {
         // Arrow projectile
-        const arrow = scene.add.ellipse(startX, startY, 20, 4, 0x8b4513, 1);
-        arrow.setRotation(Phaser.Math.Angle.Between(startX, startY, targetX, targetY));
+        const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
+        const arrow = scene.add.rectangle(startX, startY, 8, 2, 0xdddddd);
+        arrow.rotation = angle;
         arrow.setDepth(6);
 
         // Emit projectile start event
@@ -219,6 +247,7 @@ class AutoAttackSystemService {
           attackType: "archery",
           startPosition: { x: startX, y: startY },
           targetPosition: { x: targetX, y: targetY },
+          angle: angle,
         });
 
         scene.tweens.add({
@@ -229,7 +258,7 @@ class AutoAttackSystemService {
           onComplete: () => {
             arrow.destroy();
 
-            // Create impact effect
+            // Add impact effect
             const impact = scene.add.circle(targetX, targetY, 8, 0xffffff, 0.8);
             impact.setDepth(6);
             scene.tweens.add({
@@ -310,9 +339,10 @@ class AutoAttackSystemService {
       }
 
       const now = Date.now();
+      const currentCooldown = this.calculateAttackCooldown();
       const timeSinceLastAttack = now - this.lastAttackTime;
 
-      if (timeSinceLastAttack < this.attackCooldown) {
+      if (timeSinceLastAttack < currentCooldown) {
         return false; // Attack on cooldown
       }
 
@@ -393,6 +423,7 @@ class AutoAttackSystemService {
           },
           damage: doesHit ? this.calculateDamage() : 0,
           didHit: doesHit,
+          attackCooldown: currentCooldown, // Include current cooldown in event
         });
 
         return true;

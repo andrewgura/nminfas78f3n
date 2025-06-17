@@ -15,6 +15,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     weight: 10,
     description: "A simple but reliable iron sword. Standard issue for new adventurers.",
     texture: "commoner-sword",
+    attackSpeed: 1000,
     isTwoHanded: false,
     rarity: "common",
     sellValue: 10,

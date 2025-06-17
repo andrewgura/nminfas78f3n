@@ -1,13 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-
-// Import interfaces
-interface SkillData {
-  level: number;
-  experience: number;
-  maxExperience: number;
-}
+import { SkillData } from "@/types";
+import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 
 interface SkillRowProps {
   skillId: string;
@@ -16,14 +11,6 @@ interface SkillRowProps {
   bonusLevel?: number;
   onMouseEnter: (skillId: string) => void;
   onMouseLeave: () => void;
-}
-
-interface SecondaryStatRowProps {
-  statId: string;
-  statName: string;
-  baseValue: number;
-  bonusValue?: number;
-  icon: string;
 }
 
 const SkillRow: React.FC<SkillRowProps> = ({
@@ -74,6 +61,14 @@ const SkillRow: React.FC<SkillRowProps> = ({
   );
 };
 
+interface SecondaryStatRowProps {
+  statId: string;
+  statName: string;
+  baseValue: number;
+  bonusValue?: number;
+  icon: string;
+}
+
 const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
   statId,
   statName,
@@ -81,7 +76,7 @@ const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
   bonusValue = 0,
   icon,
 }) => {
-  const totalValue = baseValue;
+  const totalValue = baseValue + bonusValue;
 
   return (
     <div id={`stat-row-${statId}`} className="secondary-stat-row">
@@ -89,6 +84,7 @@ const SecondaryStatRow: React.FC<SecondaryStatRowProps> = ({
       <div className="secondary-stat-name">{statName}</div>
       <div id={`${statId}-value`} className="secondary-stat-value">
         {totalValue}
+        {bonusValue > 0 && <span className="bonus-value"> +{bonusValue}</span>}
       </div>
     </div>
   );
@@ -138,16 +134,10 @@ const SkillTooltip: React.FC<TooltipProps> = ({ skillId, skill, visible, positio
 const getSkillName = (skillId: string): string => {
   const skillNames: Record<string, string> = {
     playerLevel: "Level",
-    melee: "Melee Weapons",
+    meleeWeapons: "Melee Weapons",
     archery: "Archery",
     magic: "Magic",
     shield: "Shield",
-    power: "Power",
-    healthRegen: "Health Regeneration",
-    manaRegen: "Mana Regeneration",
-    moveSpeed: "Move Speed",
-    attackSpeed: "Attack Speed",
-    capacity: "Capacity",
   };
   return skillNames[skillId] || skillId;
 };
@@ -155,16 +145,10 @@ const getSkillName = (skillId: string): string => {
 const getSkillBonusDescription = (skillId: string, bonus: number): string => {
   const descriptions: Record<string, string> = {
     playerLevel: `+${bonus}% to all attributes`,
-    melee: `+${bonus}% damage with melee weapons`,
+    meleeWeapons: `+${bonus}% damage with melee weapons`,
     archery: `+${bonus}% damage with bows and crossbows`,
     magic: `+${bonus}% magic damage and effect`,
     shield: `+${bonus}% damage reduction from all sources`,
-    power: `+${bonus} base damage to all attacks`,
-    healthRegen: `+${bonus} health regenerated per second`,
-    manaRegen: `+${bonus} mana regenerated per second`,
-    moveSpeed: `+${bonus}% movement speed`,
-    attackSpeed: `+${bonus}% faster attack speed`,
-    capacity: `+${bonus} carrying capacity`,
   };
   return descriptions[skillId] || `+${bonus}% effectiveness`;
 };
@@ -289,6 +273,52 @@ const SkillsWindow: React.FC = () => {
     }
   };
 
+  /**
+   * Get attack speed display value (cooldown in seconds)
+   */
+  const getAttackSpeedDisplayValue = (): string => {
+    const attackSpeed = calculatedStats.totalAttackSpeed;
+    // Use the same formula as AutoAttackSystem: max(200, 2000 - ((attackSpeed - 1) * 50))
+    const cooldownMs = Math.max(200, 2000 - (attackSpeed - 1) * 50);
+    const cooldownSeconds = cooldownMs / 1000;
+
+    // Format to 1 decimal place and add "/s" suffix
+    return `${cooldownSeconds.toFixed(1)}/s`;
+  };
+
+  /**
+   * Custom SecondaryStatRow for Attack Speed with cooldown display
+   */
+  const AttackSpeedStatRow: React.FC = () => {
+    const displayValue = getAttackSpeedDisplayValue();
+
+    return (
+      <div id="stat-row-attackSpeed" className="secondary-stat-row">
+        <div className="secondary-stat-icon">{secondaryStatIcons.attackSpeed}</div>
+        <div className="secondary-stat-name">Attack Speed</div>
+        <div id="attackSpeed-value" className="secondary-stat-value">
+          {displayValue}
+        </div>
+      </div>
+    );
+  };
+
+  const MoveSpeedStatRow: React.FC = () => {
+    const totalMoveSpeed = calculatedStats.totalMoveSpeed;
+    const baseMoveSpeed = 250;
+    const moveSpeed = Math.round(totalMoveSpeed / baseMoveSpeed);
+
+    return (
+      <div id="stat-row-moveSpeed" className="secondary-stat-row">
+        <div className="secondary-stat-icon">{secondaryStatIcons.moveSpeed}</div>
+        <div className="secondary-stat-name">Movement Speed</div>
+        <div id="moveSpeed-value" className="secondary-stat-value">
+          {moveSpeed}
+        </div>
+      </div>
+    );
+  };
+
   // Icons for secondary stats
   const secondaryStatIcons: Record<string, string> = {
     health: "❤️",
@@ -385,27 +415,26 @@ const SkillsWindow: React.FC = () => {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="skills-tabs">
-          <div
-            className={`skills-tab ${activeTab === SkillTab.MAIN ? "active" : ""}`}
-            onClick={() => setActiveTab(SkillTab.MAIN)}
-          >
-            Main Skills
-          </div>
-          <div
-            className={`skills-tab ${activeTab === SkillTab.SECONDARY ? "active" : ""}`}
-            onClick={() => setActiveTab(SkillTab.SECONDARY)}
-          >
-            Secondary Stats
-          </div>
-        </div>
-
         <div className="skills-window-content">
+          {/* Tabs */}
+          <div className="skills-tabs">
+            <div
+              className={`skills-tab ${activeTab === SkillTab.MAIN ? "active" : ""}`}
+              onClick={() => setActiveTab(SkillTab.MAIN)}
+            >
+              Main Skills
+            </div>
+            <div
+              className={`skills-tab ${activeTab === SkillTab.SECONDARY ? "active" : ""}`}
+              onClick={() => setActiveTab(SkillTab.SECONDARY)}
+            >
+              Secondary Stats
+            </div>
+          </div>
+
           {/* Main Skills Tab */}
           {activeTab === SkillTab.MAIN && (
             <div className="skills-wrapper">
-              {/* Player Level */}
               <SkillRow
                 skillId="playerLevel"
                 skillName="Level"
@@ -415,12 +444,11 @@ const SkillsWindow: React.FC = () => {
                 onMouseLeave={handleSkillMouseLeave}
               />
 
-              {/* Combat Skills */}
               <SkillRow
-                skillId="melee"
+                skillId="meleeWeapons"
                 skillName="Melee Weapons"
-                skill={getSkillData("melee")}
-                bonusLevel={getSkillBonus("melee")}
+                skill={getSkillData("meleeWeapons")}
+                bonusLevel={getSkillBonus("meleeWeapons")}
                 onMouseEnter={handleSkillMouseEnter}
                 onMouseLeave={handleSkillMouseLeave}
               />
@@ -521,12 +549,8 @@ const SkillsWindow: React.FC = () => {
                     icon={secondaryStatIcons.armor}
                   />
 
-                  <SecondaryStatRow
-                    statId="attackSpeed"
-                    statName="Attack Speed"
-                    baseValue={getTotalStatValue("attackSpeed")}
-                    icon={secondaryStatIcons.attackSpeed}
-                  />
+                  {/* Custom Attack Speed Display */}
+                  <AttackSpeedStatRow />
                 </div>
               </div>
 
@@ -554,12 +578,7 @@ const SkillsWindow: React.FC = () => {
                 <div className="secondary-stats-section">
                   <h4 className="secondary-stats-header">Misc</h4>
 
-                  <SecondaryStatRow
-                    statId="moveSpeed"
-                    statName="Move Speed"
-                    baseValue={getTotalStatValue("moveSpeed")}
-                    icon={secondaryStatIcons.moveSpeed}
-                  />
+                  <MoveSpeedStatRow />
                 </div>
               </div>
             </div>

@@ -31,7 +31,7 @@ const MONSTER_DATA: Record<string, MonsterData> = {
     sprite: "assets/sprites/skeleton.png",
     health: 6,
     maxHealth: 6,
-    speed: 100,
+    speed: 250,
     experience: 40,
     damage: 2,
     armor: 1,

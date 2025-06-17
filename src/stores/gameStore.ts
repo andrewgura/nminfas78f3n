@@ -17,15 +17,14 @@ import {
   calculateLevelFromExperience,
 } from "@/utils/SkillProgressionFormula";
 
-// Calculate stats interface
+// SIMPLIFIED: Calculate stats interface with single move speed
 export interface CalculatedStats {
   // Total stats including base + equipment + skills
   totalHealth: number;
   totalMana: number;
   totalPower: number;
   totalArmor: number;
-  totalMoveSpeed: number; // Display value (higher = faster)
-  actualMoveSpeed: number; // Internal value (lower = faster)
+  totalMoveSpeed: number; // SIMPLIFIED: Single move speed value (base 250)
   totalAttackSpeed: number;
   totalHealthRegen: number;
   totalManaRegen: number;
@@ -187,6 +186,7 @@ const calculateEquipmentBonuses = (equipment: PlayerCharacterEquipment) => {
   return bonuses;
 };
 
+// SIMPLIFIED: Calculate total stats with much cleaner move speed
 const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): CalculatedStats => {
   const skills = playerCharacter.skills;
 
@@ -200,19 +200,18 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   const baseManaRegen = skills.manaRegen?.level || 1;
   const baseAttackSpeed = skills.attackSpeed?.level || 1;
 
-  // Move speed calculation (internal vs display)
-  const moveSpeedLevel = skills.moveSpeed?.level || 1;
-  const baseMoveSpeedInternal = 100 - (moveSpeedLevel - 1) * 2; // Lower = faster
-  const actualMoveSpeed = Math.max(10, baseMoveSpeedInternal + equipmentBonuses.moveSpeed);
-  const displayMoveSpeed = Math.max(1, moveSpeedLevel + Math.abs(equipmentBonuses.moveSpeed / 10));
+  // SIMPLIFIED: Move speed calculation
+  const baseMoveSpeed = 250; // Base player move speed
+  const moveSpeedSkillLevel = skills.moveSpeed?.level || 1;
+  const skillBonus = moveSpeedSkillLevel - 1; // Each level above 1 adds +1
+  const totalMoveSpeed = Math.max(50, baseMoveSpeed + skillBonus + equipmentBonuses.moveSpeed);
 
   return {
     totalHealth: baseHealth + equipmentBonuses.health,
     totalMana: baseMana + equipmentBonuses.mana,
-    totalPower: basePower + equipmentBonuses.power, // 0 + equipment power
-    totalArmor: baseArmor + equipmentBonuses.armor, // 0 + equipment armor
-    totalMoveSpeed: displayMoveSpeed,
-    actualMoveSpeed: actualMoveSpeed,
+    totalPower: basePower + equipmentBonuses.power,
+    totalArmor: baseArmor + equipmentBonuses.armor,
+    totalMoveSpeed: totalMoveSpeed, // Single value for both display and movement
     totalAttackSpeed: baseAttackSpeed + equipmentBonuses.attackSpeed,
     totalHealthRegen: baseHealthRegen + equipmentBonuses.healthRegen,
     totalManaRegen: baseManaRegen + equipmentBonuses.manaRegen,
@@ -221,14 +220,13 @@ const calculateTotalStats = (playerCharacter: any, equipmentBonuses: any): Calcu
   };
 };
 
-// Initial calculated stats
+// SIMPLIFIED: Initial calculated stats with base 250 move speed
 const initialCalculatedStats: CalculatedStats = {
-  totalHealth: 2000,
+  totalHealth: 100,
   totalMana: 100,
   totalPower: 0,
   totalArmor: 0,
-  totalMoveSpeed: 1,
-  actualMoveSpeed: 250,
+  totalMoveSpeed: 250, // Base move speed of 250
   totalAttackSpeed: 1,
   totalHealthRegen: 1,
   totalManaRegen: 1,
@@ -402,7 +400,7 @@ export const useGameStore = create<GameState>()(
       });
     },
 
-    // Equipment - handles ItemInstance
+    // SIMPLIFIED: Equipment - handles ItemInstance with simplified move speed events
     setPlayerCharacterEquipment: (equipment, source = "system") => {
       set((state) => {
         const newState = {
@@ -418,10 +416,8 @@ export const useGameStore = create<GameState>()(
 
         eventBus.emit("equipment.changed", { equipment, source });
         eventBus.emit("player.stats.updated", calculatedStats);
-        eventBus.emit("player.moveSpeed.updated", {
-          newSpeed: calculatedStats.actualMoveSpeed,
-          displaySpeed: calculatedStats.totalMoveSpeed,
-        });
+        // SIMPLIFIED: Single move speed event
+        eventBus.emit("player.moveSpeed.updated", calculatedStats.totalMoveSpeed);
 
         return {
           ...newState,
@@ -643,7 +639,7 @@ export const useGameStore = create<GameState>()(
     // Chest methods
     isChestOpen: (chestId) => {
       const state = get();
-      return !!state.openedChests[chestId];
+      return !state.openedChests[chestId];
     },
 
     setChestOpen: (chestId) => {
@@ -655,17 +651,15 @@ export const useGameStore = create<GameState>()(
       }));
     },
 
-    // Recalculate stats manually
+    // SIMPLIFIED: Recalculate stats manually with simplified move speed events
     recalculateStats: () => {
       set((state) => {
         const equipmentBonuses = calculateEquipmentBonuses(state.playerCharacter.equipment);
         const calculatedStats = calculateTotalStats(state.playerCharacter, equipmentBonuses);
 
         eventBus.emit("player.stats.updated", calculatedStats);
-        eventBus.emit("player.moveSpeed.updated", {
-          newSpeed: calculatedStats.actualMoveSpeed,
-          displaySpeed: calculatedStats.totalMoveSpeed,
-        });
+        // SIMPLIFIED: Single move speed event
+        eventBus.emit("player.moveSpeed.updated", calculatedStats.totalMoveSpeed);
 
         return {
           calculatedStats,
