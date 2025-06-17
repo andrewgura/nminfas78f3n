@@ -2,10 +2,11 @@ import { MovementComponent } from "../player/MovementComponent";
 import { Monster } from "../Monster";
 import { MonsterAttackType } from "@/types";
 import { eventBus } from "@/utils/EventBus";
-import { MapService } from "@/services/MapService"; // Add this import
-import { useGameStore } from "@/stores/gameStore"; // Add this import
+import { MapService } from "@/services/MapService";
+import { useGameStore } from "@/stores/gameStore";
 
 export class MonsterMovementComponent extends MovementComponent {
+  private speed: number = 120; // FIXED: Add monster-specific speed property
   private isAggressive: boolean = false;
   private isProvoked: boolean = false;
   private runawayPercent: number = 0;
@@ -28,7 +29,13 @@ export class MonsterMovementComponent extends MovementComponent {
 
   constructor(entity: Monster, speed: number = 120, isAggressive: boolean = false) {
     super(entity);
+
+    // FIXED: Store monster speed from MonsterDictionary
+    this.speed = speed;
     this.isAggressive = isAggressive;
+
+    // Override parent's moveSpeed for monsters
+    (this as any).moveSpeed = speed;
 
     if (!isAggressive) {
       this.setupWanderingBehavior();
@@ -38,13 +45,20 @@ export class MonsterMovementComponent extends MovementComponent {
     eventBus.emit("monster.movement.initialized", {
       entityId: this.entity.id,
       isAggressive,
-      speed,
+      speed: this.speed,
       attackType: this.attackType,
     });
   }
 
   get monster(): Monster {
     return this.entity as Monster;
+  }
+
+  /**
+   * Override parent getMoveSpeed to return monster speed
+   */
+  getMoveSpeed(): number {
+    return this.speed;
   }
 
   /**
@@ -165,85 +179,109 @@ export class MonsterMovementComponent extends MovementComponent {
     }
   }
 
-  moveToTile(tileX: number, tileY: number, isContinuous: boolean = false): void {
-    try {
-      if (this.moveInProgress) return;
-      this.moveInProgress = true;
+  /**
+   * FIXED: Move to tile with proper speed handling - matches parent signature
+   */
+  moveToTile(tileX: number, tileY: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      try {
+        if (this.moveInProgress) {
+          resolve();
+          return;
+        }
 
-      const worldPos = this.tiledTileToWorld(tileX, tileY);
+        this.moveInProgress = true;
 
-      // Calculate direction for animation
-      const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-      const dx = tileX - currentTiledTile.x;
-      const dy = tileY - currentTiledTile.y;
+        const worldPos = this.tiledTileToWorld(tileX, tileY);
 
-      let direction = "";
-      if (Math.abs(dx) > Math.abs(dy)) {
-        direction = dx > 0 ? "right" : "left";
-      } else {
-        direction = dy > 0 ? "down" : "up";
+        // Calculate direction for animation
+        const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
+        const dx = tileX - currentTiledTile.x;
+        const dy = tileY - currentTiledTile.y;
+
+        let direction = "";
+        if (Math.abs(dx) > Math.abs(dy)) {
+          direction = dx > 0 ? "right" : "left";
+        } else {
+          direction = dy > 0 ? "down" : "up";
+        }
+
+        this.isMoving = true;
+
+        (this.entity as Monster).playAnimation(direction, true);
+
+        // Emit movement start event
+        eventBus.emit("monster.movement.start", {
+          entityId: this.entity.id,
+          direction,
+          targetPosition: { x: worldPos.x, y: worldPos.y },
+        });
+
+        // FIXED: Calculate duration based on monster's speed
+        let moveDuration = 400; // Base duration
+        const baseMoveSpeed = 120; // Base monster speed
+        moveDuration = moveDuration * (baseMoveSpeed / this.speed);
+
+        // If it's a ranged or magic monster maintaining distance, move faster
+        if (
+          (this.attackType === MonsterAttackType.Magic ||
+            this.attackType === MonsterAttackType.Ranged) &&
+          (this.isAggressive || this.isProvoked)
+        ) {
+          moveDuration *= 0.8; // 20% faster
+        }
+
+        this.entity.scene.tweens.add({
+          targets: this.entity,
+          x: worldPos.x,
+          y: worldPos.y,
+          duration: Math.max(50, moveDuration),
+          ease: "Linear",
+          onComplete: () => {
+            this.isMoving = false;
+            this.moveInProgress = false;
+
+            // Emit movement complete event
+            eventBus.emit("monster.movement.complete", {
+              entityId: this.entity.id,
+              position: { x: worldPos.x, y: worldPos.y },
+            });
+
+            if (this.continuousPursuit && (this.isAggressive || this.isProvoked)) {
+              // For all monster types, continue pursuit if needed
+              this.continuePursuit();
+            } else if (this.isAggressive || this.isProvoked) {
+              this.facePlayer();
+            } else {
+              (this.entity as Monster).playAnimation(direction, false);
+            }
+
+            resolve();
+          },
+        });
+      } catch (error) {
+        this.moveInProgress = false;
+        this.isMoving = false;
+        console.error(`Error in monster ${this.entity.id} moveToTile:`, error);
+        eventBus.emit("error.monster.move", {
+          entityId: this.entity.id,
+          error,
+        });
+        resolve();
       }
+    });
+  }
 
-      this.isMoving = true;
-      this.continuousPursuit = isContinuous;
-
-      (this.entity as Monster).playAnimation(direction, true);
-
-      // Emit movement start event
-      eventBus.emit("monster.movement.start", {
-        entityId: this.entity.id,
-        direction,
-        targetPosition: { x: worldPos.x, y: worldPos.y },
-        isContinuous,
-      });
-
-      // Faster movement for all aggressive monsters
-      let moveDuration = 400;
-
-      // If it's a ranged or magic monster maintaining distance, move faster
-      if (
-        (this.attackType === MonsterAttackType.Magic ||
-          this.attackType === MonsterAttackType.Ranged) &&
-        (this.isAggressive || this.isProvoked)
-      ) {
-        moveDuration *= 0.8; // 20% faster
-      }
-
-      this.entity.scene.tweens.add({
-        targets: this.entity,
-        x: worldPos.x,
-        y: worldPos.y,
-        duration: moveDuration,
-        ease: "Linear",
-        onComplete: () => {
-          this.isMoving = false;
-          this.moveInProgress = false;
-
-          // Emit movement complete event
-          eventBus.emit("monster.movement.complete", {
-            entityId: this.entity.id,
-            position: { x: worldPos.x, y: worldPos.y },
-          });
-
-          if (this.continuousPursuit && (this.isAggressive || this.isProvoked)) {
-            // For all monster types, continue pursuit if needed
-            this.continuePursuit();
-          } else if (this.isAggressive || this.isProvoked) {
-            this.facePlayer();
-          } else {
-            (this.entity as Monster).playAnimation(direction, false);
-          }
-        },
-      });
-    } catch (error) {
-      this.moveInProgress = false;
-      this.isMoving = false;
-      console.error(`Error in monster ${this.entity.id} moveToTile:`, error);
-      eventBus.emit("error.monster.move", {
-        entityId: this.entity.id,
-        error,
-      });
-    }
+  /**
+   * Monster-specific move method with continuous pursuit support
+   */
+  moveToTileWithPursuit(
+    tileX: number,
+    tileY: number,
+    isContinuous: boolean = false
+  ): Promise<void> {
+    this.continuousPursuit = isContinuous;
+    return this.moveToTile(tileX, tileY);
   }
 
   // Continue pursuit without delay for all aggressive monsters
@@ -308,7 +346,7 @@ export class MonsterMovementComponent extends MovementComponent {
     }
 
     const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-    this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
+    this.moveToTileWithPursuit(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
 
     // Emit chasing event
     eventBus.emit("monster.chasing", {
@@ -325,7 +363,7 @@ export class MonsterMovementComponent extends MovementComponent {
     }
 
     const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-    this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
+    this.moveToTileWithPursuit(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
 
     // Emit retreating event
     eventBus.emit("monster.retreating", {
@@ -510,7 +548,11 @@ export class MonsterMovementComponent extends MovementComponent {
           }
 
           const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true);
+          this.moveToTileWithPursuit(
+            currentTiledTile.x + move.dx,
+            currentTiledTile.y + move.dy,
+            true
+          );
 
           // Emit chasing event
           eventBus.emit("monster.chasing", {
@@ -539,7 +581,11 @@ export class MonsterMovementComponent extends MovementComponent {
           }
 
           const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true); // Continuous retreat
+          this.moveToTileWithPursuit(
+            currentTiledTile.x + move.dx,
+            currentTiledTile.y + move.dy,
+            true
+          ); // Continuous retreat
 
           // Emit retreating event
           eventBus.emit("monster.retreating", {
@@ -556,7 +602,11 @@ export class MonsterMovementComponent extends MovementComponent {
           }
 
           const currentTiledTile = this.worldToTiledTile(this.entity.x, this.entity.y);
-          this.moveToTile(currentTiledTile.x + move.dx, currentTiledTile.y + move.dy, true); // Continuous pursuit
+          this.moveToTileWithPursuit(
+            currentTiledTile.x + move.dx,
+            currentTiledTile.y + move.dy,
+            true
+          ); // Continuous pursuit
 
           // Emit chasing event
           eventBus.emit("monster.chasing", {
@@ -663,6 +713,7 @@ export class MonsterMovementComponent extends MovementComponent {
         });
       }
     } catch (error) {
+      console.error(`Monster ${this.entity.id}: Error in wander:`, error);
       eventBus.emit("error.monster.wander", {
         entityId: this.entity.id,
         error,

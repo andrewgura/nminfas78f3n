@@ -226,7 +226,7 @@ const initialCalculatedStats: CalculatedStats = {
   totalMana: 100,
   totalPower: 0,
   totalArmor: 0,
-  totalMoveSpeed: 250, // Base move speed of 250
+  totalMoveSpeed: 325, // Base move speed of 250
   totalAttackSpeed: 1,
   totalHealthRegen: 1,
   totalManaRegen: 1,
