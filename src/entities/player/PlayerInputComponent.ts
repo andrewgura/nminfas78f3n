@@ -1,10 +1,11 @@
+// src/entities/player/PlayerInputComponent.ts
 import { Component } from "../Component";
 import { Character } from "../Character";
 import { MovementComponent } from "./MovementComponent";
 import { eventBus } from "@/utils/EventBus";
 import { useGameStore } from "@/stores/gameStore";
 import { autoAttackSystem } from "@/services/AutoAttackSystem";
-// REMOVED: import { ChestLootTables } from "@/data/chest-loot-tables";
+import { MapService } from "@/services/MapService";
 
 export class PlayerInputComponent extends Component {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
@@ -85,9 +86,7 @@ export class PlayerInputComponent extends Component {
           return;
         }
 
-        // Add additional click handlers here:
-        // if (this.checkNPCClick(worldPoint)) return;
-        // if (this.checkItemClick(worldPoint)) return;
+        // Check for chest interaction using tile-based system
         if (this.checkChestClick(worldPoint)) return;
 
         // Nothing was clicked - clear target
@@ -98,48 +97,120 @@ export class PlayerInputComponent extends Component {
     }
   }
 
-  // UPDATED: Replace the entire checkChestClick method with sprite-based detection
+  // UPDATED: New tile-based chest interaction system
   private checkChestClick(worldPoint: Phaser.Math.Vector2): boolean {
     try {
       const gameScene = this.entity.scene as any;
 
-      // Check if GameScene has the sprite-based chest methods
-      if (!gameScene.canOpenChestAtPosition) {
-        console.warn("GameScene doesn't have sprite-based chest methods");
+      // Check if GameScene has the tile-based chest methods
+      if (!gameScene.canOpenChestAtTile) {
+        console.warn("GameScene doesn't have tile-based chest methods");
         return false;
       }
 
-      // Find any chest near the click position
-      const chest = gameScene.canOpenChestAtPosition(worldPoint.x, worldPoint.y);
+      // Convert world coordinates to tile coordinates
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      if (!currentMap) {
+        console.warn("No current map for chest interaction");
+        return false;
+      }
+
+      // Convert world point to tile coordinates using MapService
+      const tileCoords = MapService.phaserToTiled(currentMap, worldPoint.x, worldPoint.y);
+      const clickedTileX = tileCoords.x;
+      const clickedTileY = tileCoords.y;
+
+      console.log(
+        `Click at world (${worldPoint.x}, ${worldPoint.y}) -> tile (${clickedTileX}, ${clickedTileY})`
+      );
+
+      // Check if there's a chest at this tile
+      const chest = gameScene.canOpenChestAtTile(clickedTileX, clickedTileY);
 
       if (!chest) {
-        // No chest found at this position
-        return false;
+        // No chest found at this tile - also check nearby tiles for tolerance
+        const tolerance = 1;
+        for (let dx = -tolerance; dx <= tolerance; dx++) {
+          for (let dy = -tolerance; dy <= tolerance; dy++) {
+            const nearbyChest = gameScene.canOpenChestAtTile(clickedTileX + dx, clickedTileY + dy);
+
+            if (nearbyChest) {
+              const chestTileX = clickedTileX + dx;
+              const chestTileY = clickedTileY + dy;
+
+              // Check if player is close enough to this nearby chest
+              if (this.isPlayerCloseToTile(chestTileX, chestTileY)) {
+                return this.tryOpenChest(gameScene, nearbyChest);
+              }
+            }
+          }
+        }
+
+        return false; // No chest found
       }
 
       // Check if player is close enough to the chest
-      const playerX = this.entity.x;
-      const playerY = this.entity.y;
-      const distanceToChest = Phaser.Math.Distance.Between(playerX, playerY, chest.x, chest.y);
-      const distanceInTiles = distanceToChest / 32;
-
-      if (distanceInTiles > 1.5) {
+      if (!this.isPlayerCloseToTile(clickedTileX, clickedTileY)) {
         eventBus.emit("ui.message.show", "You are too far away to open this chest");
         return true;
       }
 
-      // Try to open the chest using GameScene's method
-      if (gameScene.openChest && gameScene.openChest(chest)) {
-        // Chest was successfully opened
-        return true;
-      } else {
-        // Chest couldn't be opened (probably already open)
-        eventBus.emit("ui.message.show", "This chest is already open");
-        return true;
-      }
+      // Try to open the chest
+      return this.tryOpenChest(gameScene, chest);
     } catch (error) {
       console.error("Error checking for chest click:", error);
       return false;
+    }
+  }
+
+  private isPlayerCloseToTile(tileX: number, tileY: number): boolean {
+    try {
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      if (!currentMap) return false;
+
+      // Convert tile coordinates to world coordinates
+      const tileWorldCoords = MapService.tiledToPhaser(currentMap, tileX, tileY);
+
+      // Calculate distance from player to tile center
+      const playerX = this.entity.x;
+      const playerY = this.entity.y;
+      const distanceToTile = Phaser.Math.Distance.Between(
+        playerX,
+        playerY,
+        tileWorldCoords.x,
+        tileWorldCoords.y
+      );
+
+      // Convert distance to tiles for easier threshold checking
+      const distanceInTiles = distanceToTile / 32;
+
+      // Allow interaction if within 1.5 tiles
+      return distanceInTiles <= 1.5;
+    } catch (error) {
+      console.error("Error checking player distance to tile:", error);
+      return false;
+    }
+  }
+
+  private tryOpenChest(gameScene: any, chest: any): boolean {
+    try {
+      // Try to open the chest using GameScene's method
+      if (gameScene.openChest && gameScene.openChest(chest)) {
+        console.log(`Successfully opened chest: ${chest.id}`);
+        return true;
+      } else {
+        // Chest couldn't be opened (probably already open)
+        eventBus.emit("ui.message.show", "This chest is already open or cannot be opened");
+        return true;
+      }
+    } catch (error) {
+      console.error("Error trying to open chest:", error);
+      eventBus.emit("ui.message.show", "Error opening chest");
+      return true;
     }
   }
 

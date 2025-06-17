@@ -14,10 +14,10 @@ import { autoAttackSystem } from "@/services/AutoAttackSystem";
 import { NPCService } from "@/services/NPCService";
 import { PortalSystem } from "@/services/PortalSystem";
 import { MonsterSpawnSystem } from "@/services/MonsterSpawnSystem";
-import { Chest } from "@/entities/Chest"; // ADD: Import Chest entity
-import { ChestLootTables } from "@/data/chest-loot-tables"; // ADD: Import ChestLootTables
+import { Chest } from "@/entities/Chest";
+import { ChestLootTables } from "@/data/chest-loot-tables";
 
-// ADD: Chest state interface
+// Chest state interface
 interface ChestState {
   id: string;
   isOpen: boolean;
@@ -42,12 +42,11 @@ export class GameScene extends Phaser.Scene {
   monsterSpawnSystem?: MonsterSpawnSystem;
   map?: Phaser.Tilemaps.Tilemap;
   groundLayer?: Phaser.Tilemaps.TilemapLayer;
-  // REMOVED: chestLayer?: Phaser.Tilemaps.TilemapLayer;
   interactLayer?: Phaser.Tilemaps.ObjectLayer | null;
   collisionLayer?: Phaser.Tilemaps.TilemapLayer;
   isChangingMap: boolean = false;
 
-  // ADD: Chest state management
+  // Chest state management
   private chestStates: Map<string, ChestState> = new Map();
 
   constructor() {
@@ -70,10 +69,10 @@ export class GameScene extends Phaser.Scene {
         this.analyzeMapChunks();
       }
 
-      // Create item, monster, and NPC groups
+      // Create item, monster, NPC, and chest groups
       this.createGameGroups();
 
-      // ADD: Initialize chests from interact-layer
+      // Initialize chests from interact-layer
       this.initializeChests();
 
       // Determine player spawn position
@@ -123,11 +122,6 @@ export class GameScene extends Phaser.Scene {
       // Skip updates while changing maps to avoid issues
       if (this.isChangingMap) return;
 
-      // Update portal system
-      if (this.portalSystem) {
-        this.portalSystem.update(time, delta);
-      }
-
       // Update playerCharacter
       if (this.playerCharacter && this.playerCharacter.active) {
         this.playerCharacter.update(time);
@@ -151,27 +145,46 @@ export class GameScene extends Phaser.Scene {
 
       // Update auto attack if available
       if (systems.autoAttackSystem) {
-        systems.autoAttackSystem.update(time, delta, this.playerCharacter);
+        // Call the auto attack system update with a direct reference to this scene
+        systems.autoAttackSystem.update();
       }
 
-      // Update NPCs
-      if (this.npcs) {
-        this.npcs.getChildren().forEach((npc) => {
-          (npc as any).update(time);
+      // Update items
+      if (this.items) {
+        this.items.getChildren().forEach((item) => {
+          if ((item as Item).update) {
+            (item as Item).update();
+          }
         });
       }
 
       // Update monsters
       if (this.monsters) {
-        this.monsters.getChildren().forEach((monster) => {
-          (monster as any).update(time, delta);
+        this.monsters.getChildren().forEach((gameObject) => {
+          const monster = gameObject as Monster;
+          if (monster.active && monster.update) {
+            monster.update(time, delta);
+          }
         });
       }
 
-      // ADD: Update chests
+      // Update NPCs
+      if (this.npcs) {
+        this.npcs.getChildren().forEach((gameObject) => {
+          const npc = gameObject as NPC;
+          if (npc.active && npc.update) {
+            npc.update(time, delta);
+          }
+        });
+      }
+
+      // Update chests
       if (this.chests) {
-        this.chests.getChildren().forEach((chest) => {
-          (chest as any).update(time, delta);
+        this.chests.getChildren().forEach((gameObject) => {
+          const chest = gameObject as Chest;
+          if (chest.active && chest.update) {
+            chest.update(time, delta);
+          }
         });
       }
     } catch (error) {
@@ -180,257 +193,47 @@ export class GameScene extends Phaser.Scene {
   }
 
   // =============================================================================
-  // ADD: CHEST MANAGEMENT METHODS
-  // =============================================================================
-
-  /**
-   * Initialize and spawn chests from interact-layer objects
-   */
-  private initializeChests(): void {
-    try {
-      // Clear existing chests
-      this.chestStates.clear();
-      if (this.chests) {
-        this.chests.clear(true, true);
-      }
-
-      if (!this.interactLayer?.objects) return;
-
-      // Get current map key for coordinate conversion
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Find all chest interaction objects and spawn them as sprites
-      this.interactLayer.objects.forEach((obj: any) => {
-        if (obj.properties && obj.x !== undefined && obj.y !== undefined) {
-          let chestId = "";
-          let lootTable = "default";
-          let respawnTime = 300;
-          let chestType = "chest-closed";
-
-          // Parse properties
-          obj.properties.forEach((prop: any) => {
-            if (prop.name === "id") chestId = prop.value;
-            if (prop.name === "lootTable") lootTable = prop.value;
-            if (prop.name === "respawnTime") respawnTime = parseInt(prop.value, 10) || 300;
-            if (prop.name === "chestType") chestType = prop.value;
-          });
-
-          // If this object has a chest ID, spawn a chest sprite
-          if (chestId) {
-            // FIXED: Correct tile calculation for negative coordinates
-            // Get object center, then convert to tile coordinates
-            const objCenterX = obj.x + (obj.width || 32) / 2;
-            const objCenterY = obj.y + (obj.height || 32) / 2;
-
-            const tileX = Math.round(objCenterX / 32);
-            const tileY = Math.round(objCenterY / 32);
-
-            // Use MapService to convert tile coordinates to proper Phaser coordinates
-            const phaserCoords = MapService.tiledToPhaser(currentMap, tileX, tileY);
-
-            console.log(
-              `Tiled object: x=${obj.x}, y=${obj.y} -> Center: x=${objCenterX}, y=${objCenterY} -> Tile: x=${tileX}, y=${tileY} -> Phaser: x=${phaserCoords.x}, y=${phaserCoords.y}`
-            );
-
-            const chest = this.spawnChest(
-              chestId,
-              phaserCoords.x,
-              phaserCoords.y,
-              lootTable,
-              respawnTime,
-              chestType
-            );
-
-            if (chest) {
-              console.log(
-                `Spawned chest sprite: ${chestId} at correct position (${phaserCoords.x}, ${phaserCoords.y}) with respawn time ${respawnTime}s`
-              );
-            }
-          }
-        }
-      });
-
-      console.log(`Spawned ${this.chestStates.size} chest sprites`);
-    } catch (error) {
-      console.error("Error initializing chests:", error);
-    }
-  }
-
-  /**
-   * Spawn a chest sprite at the given coordinates
-   */
-  spawnChest(
-    chestId: string,
-    x: number,
-    y: number,
-    lootTable: string = "default",
-    respawnTime: number = 300,
-    chestType: string = "chest-closed"
-  ): Chest | null {
-    try {
-      const chest = new Chest(this, x, y, chestId, lootTable, respawnTime);
-      chest.setTexture(chestType);
-      this.chests.add(chest);
-
-      // Create chest state for tracking
-      const chestState: ChestState = {
-        id: chestId,
-        isOpen: false,
-        lootTable,
-        respawnTime,
-        chestSprite: chest,
-        x: x,
-        y: y,
-      };
-
-      this.chestStates.set(chestId, chestState);
-
-      return chest;
-    } catch (error) {
-      console.error("Error spawning chest:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if a chest can be opened at the given world coordinates
-   */
-  public canOpenChestAtPosition(worldX: number, worldY: number): Chest | null {
-    for (const chestState of this.chestStates.values()) {
-      if (chestState.chestSprite && !chestState.isOpen) {
-        const distance = Phaser.Math.Distance.Between(
-          worldX,
-          worldY,
-          chestState.chestSprite.x,
-          chestState.chestSprite.y
-        );
-
-        if (distance <= 32) {
-          return chestState.chestSprite;
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Open a chest sprite
-   */
-  public openChest(chest: Chest): boolean {
-    const chestState = Array.from(this.chestStates.values()).find(
-      (state) => state.chestSprite === chest
-    );
-
-    if (!chestState || chestState.isOpen) {
-      return false;
-    }
-
-    try {
-      // Mark chest as open
-      chestState.isOpen = true;
-
-      // Update sprite to show open chest
-      chest.setTexture("chest-open");
-
-      // Generate loot at chest position
-      const { ChestLootTables } = require("@/data/chest-loot-tables");
-      ChestLootTables.generateLootFromTable(
-        chestState.lootTable,
-        chest.x,
-        chest.y,
-        (itemId: string, x: number, y: number) => this.spawnItem(itemId, x, y)
-      );
-
-      // Schedule respawn
-      this.scheduleChestRespawn(chestState);
-
-      eventBus.emit("ui.message.show", `You found a treasure chest!`);
-      console.log(
-        `Opened chest ${chestState.id}, will respawn in ${chestState.respawnTime} seconds`
-      );
-
-      return true;
-    } catch (error) {
-      console.error("Error opening chest:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Schedule a chest to respawn after its respawn time
-   */
-  private scheduleChestRespawn(chestState: ChestState): void {
-    try {
-      // Cancel existing timer if any
-      if (chestState.respawnTimer) {
-        chestState.respawnTimer.destroy();
-      }
-
-      // Create new respawn timer
-      chestState.respawnTimer = this.time.delayedCall(chestState.respawnTime * 1000, () => {
-        this.respawnChest(chestState);
-      });
-    } catch (error) {
-      console.error("Error scheduling chest respawn:", error);
-    }
-  }
-
-  /**
-   * Respawn a chest sprite
-   */
-  private respawnChest(chestState: ChestState): void {
-    try {
-      // Mark chest as closed
-      chestState.isOpen = false;
-
-      // Update sprite to show closed chest
-      if (chestState.chestSprite) {
-        chestState.chestSprite.setTexture("chest-closed");
-      }
-
-      // Clear the timer reference
-      chestState.respawnTimer = undefined;
-
-      eventBus.emit("ui.message.show", "A chest has respawned nearby");
-      console.log(`Chest ${chestState.id} respawned`);
-    } catch (error) {
-      console.error("Error respawning chest:", error);
-    }
-  }
-
-  // =============================================================================
   // INITIALIZATION METHODS
   // =============================================================================
 
   private createGameGroups(): void {
-    this.items = this.add.group();
-    this.monsters = this.add.group();
-    this.npcs = this.add.group();
-    this.chests = this.add.group();
+    try {
+      // Create groups for game entities
+      this.items = this.add.group();
+      this.monsters = this.add.group();
+      this.npcs = this.add.group();
+      this.chests = this.add.group();
+
+      console.log("Game entity groups created successfully");
+    } catch (error) {
+      console.error("Error creating game groups:", error);
+      eventBus.emit("ui.error.show", `Error creating game groups: ${(error as Error).message}`);
+    }
   }
 
   private setupCamera(): void {
-    this.cameras.main.startFollow(
-      this.playerCharacter,
-      true, // roundPixels
-      100, // lerpX
-      100, // lerpY
-      0, // offsetX
-      0 // offsetY
-    );
-    this.cameras.main.setZoom(1.9);
-    this.cameras.main.fadeIn(500, 0, 0, 0);
+    try {
+      // Set up camera to follow playerCharacter
+      this.cameras.main.startFollow(
+        this.playerCharacter,
+        true, // roundPixels
+        100, // lerpX
+        100, // lerpY
+        0, // offsetX
+        0 // offsetY
+      );
+      this.cameras.main.setZoom(1.7);
+
+      // Fade in when the scene starts
+      this.cameras.main.fadeIn(500, 0, 0, 0);
+    } catch (error) {
+      console.error("Error setting up camera:", error);
+    }
   }
 
   private initializeGameSystems(): void {
     try {
       const store = useGameStore.getState();
-
-      // Clean up existing systems
-      if (this.itemHoverSystem) {
-        this.itemHoverSystem.cleanup();
-      }
 
       // Initialize systems
       this.itemHoverSystem = new ItemHoverSystem();
@@ -463,9 +266,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Initialize the portal system to handle stairs and teleports
-   */
   private initPortalSystem(): void {
     try {
       // Clean up existing portal system first
@@ -499,75 +299,321 @@ export class GameScene extends Phaser.Scene {
     // Monster spawning is now handled by MonsterSpawnSystem
   }
 
-  /**
-   * Re-initialize systems for new map - extracted for use during map transitions
-   */
-  private reinitializeSystemsForNewMap(): void {
+  // =============================================================================
+  // CHEST SYSTEM METHODS
+  // =============================================================================
+
+  private initializeChests(): void {
     try {
-      const store = useGameStore.getState();
-
-      // Clean up and reinitialize ItemHoverSystem
-      if (this.itemHoverSystem) {
-        this.itemHoverSystem.cleanup();
-      }
-      this.itemHoverSystem = new ItemHoverSystem();
-      store.registerSystem("itemHoverSystem", this.itemHoverSystem);
-
-      // Reinitialize monster spawn system for new map
-      if (this.monsterSpawnSystem) {
-        this.monsterSpawnSystem.cleanup();
-        this.monsterSpawnSystem.initialize();
+      if (!this.interactLayer) {
+        console.warn("No interact layer found for chest initialization");
+        return;
       }
 
-      // Reinitialize portal system
-      this.initPortalSystem();
+      // Clear existing chest states
+      this.chestStates.clear();
 
-      // Reinitialize cursor position system
-      if (this.cursorPositionSystem) {
-        this.cursorPositionSystem.destroy();
-      }
-      this.cursorPositionSystem = new CursorPositionSystem(this, 32);
-      this.cursorPositionSystem.initialize();
-
-      console.log("Systems reinitialized for new map");
-    } catch (error) {
-      console.error("Error reinitializing systems for new map:", error);
-    }
-  }
-
-  /**
-   * Analyze map chunks during development to help determine correct chunkInfo values
-   */
-  private analyzeMapChunks(): void {
-    try {
       const store = useGameStore.getState();
       const currentMap = store.currentMap;
 
-      // Import the MapChunkCalculator dynamically in development
-      import("../utils/MapChunkCalculator")
-        .then(({ MapChunkCalculator }) => {
-          const analysis = MapChunkCalculator.analyzeTiledMap(currentMap, this);
+      // Find all chest interaction objects and spawn them as sprites
+      this.interactLayer.objects.forEach((obj: any) => {
+        if (obj.properties && obj.x !== undefined && obj.y !== undefined) {
+          let chestId = "";
+          let lootTable = "default";
+          let respawnTime = 300;
+          let chestType = "chest-closed";
 
-          if (analysis) {
-            // Compare with current configuration
-            const currentConfig = MapService.getMap(currentMap);
-            if (currentConfig && currentConfig.chunkInfo) {
-              console.log("Current configuration:", currentConfig.chunkInfo);
+          // Parse properties
+          obj.properties.forEach((prop: any) => {
+            if (prop.name === "id") chestId = prop.value;
+            if (prop.name === "lootTable") lootTable = prop.value;
+            if (prop.name === "respawnTime") respawnTime = parseInt(prop.value, 10) || 300;
+            if (prop.name === "chestType") chestType = prop.value;
+          });
+
+          // If this object has a chest ID, spawn a chest sprite
+          if (chestId) {
+            // Better coordinate conversion for Tiled objects
+            // Tiled objects have their origin at top-left, but we want center positioning
+            const objCenterX = obj.x + (obj.width || 32) / 2;
+            const objCenterY = obj.y + (obj.height || 32) / 2;
+
+            // Convert pixel coordinates to tile coordinates
+            const tileX = Math.floor(objCenterX / 32);
+            const tileY = Math.floor(objCenterY / 32);
+
+            // Use MapService to convert tile coordinates to proper Phaser world coordinates
+            const phaserCoords = MapService.tiledToPhaser(currentMap, tileX, tileY);
+
+            console.log(
+              `Tiled object: x=${obj.x}, y=${obj.y} -> Center: x=${objCenterX}, y=${objCenterY} -> Tile: x=${tileX}, y=${tileY} -> Phaser: x=${phaserCoords.x}, y=${phaserCoords.y}`
+            );
+
+            const chest = this.spawnChest(
+              chestId,
+              phaserCoords.x,
+              phaserCoords.y,
+              lootTable,
+              respawnTime,
+              chestType
+            );
+
+            if (chest) {
+              // Store the tile coordinates in the chest for interaction checking
+              (chest as any).tileX = tileX;
+              (chest as any).tileY = tileY;
+
               console.log(
-                "Matches suggested values:",
-                currentConfig.chunkInfo.startX === analysis.chunkInfo.startX &&
-                  currentConfig.chunkInfo.startY === analysis.chunkInfo.startY
+                `Spawned chest sprite: ${chestId} at position (${phaserCoords.x}, ${phaserCoords.y}) with respawn time ${respawnTime}s`
               );
             }
           }
-        })
-        .catch((err) => {
-          console.log("MapChunkCalculator not available:", err.message);
-        });
+        }
+      });
+
+      console.log(`Spawned ${this.chestStates.size} chest sprites`);
     } catch (error) {
-      console.log("Map chunk analysis not available:", error);
+      console.error("Error initializing chests:", error);
     }
   }
+
+  spawnChest(
+    chestId: string,
+    x: number,
+    y: number,
+    lootTable: string = "default",
+    respawnTime: number = 300,
+    chestType: string = "chest-closed"
+  ): Chest | null {
+    try {
+      // Check if chest with this ID already exists
+      const existingChest = Array.from(this.chestStates.values()).find(
+        (state) => state.id === chestId
+      );
+
+      if (existingChest) {
+        console.warn(`Chest with ID ${chestId} already exists, skipping spawn`);
+        return existingChest.chestSprite;
+      }
+
+      // Create the chest entity
+      const chest = new Chest(this, x, y, chestId, lootTable, respawnTime);
+      chest.setTexture(chestType);
+
+      // Add to chests group
+      this.chests.add(chest);
+
+      // Create chest state for tracking
+      const chestState: ChestState = {
+        id: chestId,
+        isOpen: false,
+        lootTable,
+        respawnTime,
+        chestSprite: chest,
+        x: x,
+        y: y,
+      };
+
+      this.chestStates.set(chestId, chestState);
+
+      console.log(`Created chest ${chestId} at (${x}, ${y}) with loot table: ${lootTable}`);
+      return chest;
+    } catch (error) {
+      console.error("Error spawning chest:", error);
+      return null;
+    }
+  }
+
+  public canOpenChestAtTile(tileX: number, tileY: number): Chest | null {
+    // First, check if there's an interact-layer object at this tile position
+    if (!this.interactLayer) {
+      return null;
+    }
+
+    let chestAtTile: Chest | null = null;
+
+    // Find interact-layer object at this tile position
+    this.interactLayer.objects.forEach((obj: any) => {
+      if (obj.properties) {
+        let hasChestId = false;
+
+        // Check if this object has chest properties
+        obj.properties.forEach((prop: any) => {
+          if (prop.name === "id" && prop.value) {
+            hasChestId = true;
+          }
+        });
+
+        if (hasChestId) {
+          // Calculate the tile position of this object
+          const objCenterX = obj.x + (obj.width || 32) / 2;
+          const objCenterY = obj.y + (obj.height || 32) / 2;
+          const objTileX = Math.floor(objCenterX / 32);
+          const objTileY = Math.floor(objCenterY / 32);
+
+          // Check if this matches the target tile
+          if (objTileX === tileX && objTileY === tileY) {
+            // Find the corresponding chest sprite
+            for (const chestState of this.chestStates.values()) {
+              const chest = chestState.chestSprite;
+              if (
+                chest &&
+                (chest as any).tileX === tileX &&
+                (chest as any).tileY === tileY &&
+                !chestState.isOpen
+              ) {
+                chestAtTile = chest;
+                break;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return chestAtTile;
+  }
+
+  public openChest(chest: Chest): boolean {
+    const chestState = Array.from(this.chestStates.values()).find(
+      (state) => state.chestSprite === chest
+    );
+
+    if (!chestState || chestState.isOpen) {
+      return false;
+    }
+
+    try {
+      // Mark chest as open
+      chestState.isOpen = true;
+
+      // Hide the chest sprite immediately
+      chest.setVisible(false);
+      chest.setActive(false);
+
+      // Generate loot at chest position using the already imported ChestLootTables
+      ChestLootTables.generateLootFromTable(
+        chestState.lootTable,
+        chest.x,
+        chest.y,
+        (itemId: string, x: number, y: number) => this.spawnItem(itemId, x, y)
+      );
+
+      // Schedule respawn
+      this.scheduleChestRespawn(chestState);
+
+      eventBus.emit("ui.message.show", `You found a treasure chest!`);
+      console.log(`Opened chest ${chestState.id} with loot table: ${chestState.lootTable}`);
+
+      return true;
+    } catch (error) {
+      console.error("Error opening chest:", error);
+      return false;
+    }
+  }
+
+  private scheduleChestRespawn(chestState: ChestState): void {
+    try {
+      // Clear any existing respawn timer
+      if (chestState.respawnTimer) {
+        chestState.respawnTimer.destroy();
+      }
+
+      // Create new respawn timer
+      chestState.respawnTimer = this.time.delayedCall(
+        chestState.respawnTime * 1000, // Convert seconds to milliseconds
+        () => {
+          // Respawn the chest
+          chestState.isOpen = false;
+          chestState.chestSprite.setVisible(true);
+          chestState.chestSprite.setActive(true);
+          chestState.chestSprite.setTexture("chest-closed");
+
+          console.log(`Chest ${chestState.id} has respawned`);
+          eventBus.emit("ui.message.show", "A chest has respawned nearby!");
+        }
+      );
+    } catch (error) {
+      console.error("Error scheduling chest respawn:", error);
+    }
+  }
+
+  private cleanupChests(): void {
+    try {
+      // Clear all chest respawn timers
+      this.chestStates.forEach((chestState) => {
+        if (chestState.respawnTimer) {
+          chestState.respawnTimer.destroy();
+        }
+      });
+
+      // Clear chest states
+      this.chestStates.clear();
+
+      // Clear chest group
+      if (this.chests) {
+        this.chests.clear(true, true);
+      }
+
+      console.log("Chest cleanup completed");
+    } catch (error) {
+      console.error("Error cleaning up chests:", error);
+    }
+  }
+
+  // =============================================================================
+  // CHEST DEBUG METHODS
+  // =============================================================================
+
+  public debugChestPositions(): void {
+    console.log("=== CHEST DEBUG INFO ===");
+    console.log(`Total chests: ${this.chestStates.size}`);
+
+    this.chestStates.forEach((chestState, chestId) => {
+      const chest = chestState.chestSprite;
+      console.log(`Chest ${chestId}:`);
+      console.log(`  World position: (${chest.x}, ${chest.y})`);
+      console.log(`  Tile position: (${(chest as any).tileX}, ${(chest as any).tileY})`);
+      console.log(`  Is open: ${chestState.isOpen}`);
+      console.log(`  Visible: ${chest.visible}`);
+      console.log(`  Active: ${chest.active}`);
+    });
+
+    if (this.interactLayer) {
+      console.log("=== INTERACT LAYER OBJECTS ===");
+      this.interactLayer.objects.forEach((obj: any, index: number) => {
+        if (obj.properties) {
+          const hasChestId = obj.properties.some((prop: any) => prop.name === "id");
+          if (hasChestId) {
+            console.log(`Object ${index}:`);
+            console.log(`  Tiled position: (${obj.x}, ${obj.y})`);
+            console.log(`  Size: ${obj.width}x${obj.height}`);
+            console.log(`  Properties:`, obj.properties);
+          }
+        }
+      });
+    }
+
+    console.log("=== END CHEST DEBUG ===");
+  }
+
+  public testChestInteraction(tileX: number, tileY: number): void {
+    console.log(`Testing chest interaction at tile (${tileX}, ${tileY})`);
+
+    const chest = this.canOpenChestAtTile(tileX, tileY);
+    if (chest) {
+      console.log(`Found chest: ${chest.id}`);
+      const success = this.openChest(chest);
+      console.log(`Open chest result: ${success}`);
+    } else {
+      console.log("No chest found at this tile");
+    }
+  }
+
+  // =============================================================================
+  // MAP AND TILEMAP METHODS
+  // =============================================================================
 
   loadTiledMap(): boolean {
     try {
@@ -608,9 +654,7 @@ export class GameScene extends Phaser.Scene {
           this.groundLayer = layer;
         } else if (layerData.name === "wall-layer") {
           this.collisionLayer = layer;
-        }
-        // REMOVED: chest-layer handling
-        else if (layerData.name === "collision-layer") {
+        } else if (layerData.name === "collision-layer") {
           // This is our dedicated collision layer
           this.collisionLayer = layer;
 
@@ -648,91 +692,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // =============================================================================
-  // COLLISION SETUP
-  // =============================================================================
-
-  setupCollisions(): void {
-    try {
-      if (!this.collisionLayer || !this.playerCharacter) return;
-
-      // Basic collisions
-      this.physics.add.collider(this.playerCharacter, this.collisionLayer);
-      this.physics.add.collider(this.items, this.collisionLayer);
-      this.physics.add.collider(this.monsters, this.collisionLayer);
-      this.physics.add.collider(this.npcs, this.collisionLayer);
-      this.physics.add.collider(this.chests, this.collisionLayer);
-
-      // Monsters collide with player
-      if (this.monsters && this.playerCharacter) {
-        this.physics.add.collider(this.monsters, this.playerCharacter);
-      }
-
-      // NPC interaction
-      this.physics.add.overlap(this.playerCharacter, this.npcs, (player, npc) => {
-        const isInteractKeyDown = this.input.keyboard?.checkDown(
-          this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-          500
-        );
-        if (isInteractKeyDown) {
-          (npc as NPC).interact();
-        }
-      });
-    } catch (error) {
-      console.error("Error in GameScene.setupCollisions:", error);
-    }
-  }
-
-  // =============================================================================
-  // ENTITY SPAWNING
-  // =============================================================================
-
-  private spawnInitialNPCs(): void {
-    try {
-      // Get the current map from the store
-      const store = useGameStore.getState();
-      const currentMap = store.currentMap;
-
-      // Only spawn NPCs for the game-map
-      if (currentMap === "game-map") {
-        // Spawn Al Dee - merchant NPC
-        const alDeeData = NPCService.getNPC("merchant-aldee");
-        if (alDeeData) {
-          this.spawnNPC(alDeeData, 2128, 1328);
-          console.log("Spawned Al Dee at (2128, 1328)");
-        }
-      }
-    } catch (error) {
-      console.error("Error in GameScene.spawnInitialNPCs:", error);
-      eventBus.emit("ui.error.show", `Error spawning NPCs: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Spawn test items to verify hover system works after map changes
-   */
-  private spawnTestItems(): void {
+  private analyzeMapChunks(): void {
     try {
       const store = useGameStore.getState();
       const currentMap = store.currentMap;
 
-      // Spawn test items on each map
-      if (currentMap === "game-map") {
-        this.spawnItem("fireSword", 1584, 240);
-      }
+      // Import the MapChunkCalculator dynamically in development
+      import("../utils/MapChunkCalculator")
+        .then(({ MapChunkCalculator }) => {
+          const analysis = MapChunkCalculator.analyzeTiledMap(currentMap, this);
+
+          if (analysis) {
+            // Compare with current configuration
+            const currentConfig = MapService.getMap(currentMap);
+            if (currentConfig && currentConfig.chunkInfo) {
+              console.log("Current configuration:", currentConfig.chunkInfo);
+              console.log(
+                "Matches suggested values:",
+                currentConfig.chunkInfo.startX === analysis.chunkInfo.startX &&
+                  currentConfig.chunkInfo.startY === analysis.chunkInfo.startY
+              );
+            }
+          }
+        })
+        .catch((err) => {
+          console.log("MapChunkCalculator not available:", err.message);
+        });
     } catch (error) {
-      console.error("Error spawning test items:", error);
+      console.log("Map chunk analysis not available:", error);
     }
   }
 
-  // This method is now handled by MonsterSpawnSystem
-  spawnInitialMonsters(): void {
-    // Monster spawning is now handled by MonsterSpawnSystem
-    console.log("Monster spawning now handled by MonsterSpawnSystem");
-  }
-
   // =============================================================================
-  // ENTITY CREATION METHODS
+  // ENTITY SPAWNING METHODS
   // =============================================================================
 
   spawnItem(
@@ -795,13 +787,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Spawns an NPC at the specified position
-   * @param npcData The NPC data
-   * @param x X coordinate
-   * @param y Y coordinate
-   * @returns The spawned NPC
-   */
   spawnNPC(npcData: NPCData, x: number, y: number): NPC | null {
     try {
       const npc = new NPC(this, x, y, npcData);
@@ -818,17 +803,100 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private spawnInitialNPCs(): void {
+    try {
+      // Get the current map from the store
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      // Only spawn NPCs for the game-map
+      if (currentMap === "game-map") {
+        // Spawn Al Dee - merchant NPC
+        const alDeeData = NPCService.getNPC("merchant-aldee");
+        if (alDeeData) {
+          this.spawnNPC(alDeeData, 2128, 1328);
+          console.log("Spawned Al Dee at (2128, 1328)");
+        }
+      }
+    } catch (error) {
+      console.error("Error in GameScene.spawnInitialNPCs:", error);
+      eventBus.emit("ui.error.show", `Error spawning NPCs: ${(error as Error).message}`);
+    }
+  }
+
+  private spawnTestItems(): void {
+    try {
+      const store = useGameStore.getState();
+      const currentMap = store.currentMap;
+
+      // Spawn test items on each map
+      if (currentMap === "game-map") {
+        this.spawnItem("fireSword", 1584, 240);
+      }
+    } catch (error) {
+      console.error("Error spawning test items:", error);
+    }
+  }
+
+  // =============================================================================
+  // COLLISION AND PHYSICS METHODS
+  // =============================================================================
+
+  setupCollisions(): void {
+    try {
+      // PlayerCharacter collides with map elements
+      if (this.collisionLayer && this.playerCharacter) {
+        this.physics.add.collider(this.playerCharacter, this.collisionLayer);
+      }
+
+      // Items collide with collision layer
+      if (this.items && this.collisionLayer) {
+        this.physics.add.collider(this.items, this.collisionLayer);
+      }
+
+      // Monsters collide with collision layer
+      if (this.monsters && this.collisionLayer) {
+        this.physics.add.collider(this.monsters, this.collisionLayer);
+      }
+
+      // Monsters collide with player
+      if (this.monsters && this.playerCharacter) {
+        this.physics.add.collider(this.monsters, this.playerCharacter);
+      }
+
+      // NPCs collide with collision layer
+      if (this.npcs && this.collisionLayer) {
+        this.physics.add.collider(this.npcs, this.collisionLayer);
+      }
+
+      // Chests collide with collision layer
+      if (this.chests && this.collisionLayer) {
+        this.physics.add.collider(this.chests, this.collisionLayer);
+      }
+
+      // Player can overlap with NPCs for interaction
+      if (this.npcs && this.playerCharacter) {
+        this.physics.add.overlap(this.playerCharacter, this.npcs, (player, npc) => {
+          // Check if player is pressing the interaction key
+          const isInteractKeyDown = this.input.keyboard?.checkDown(
+            this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            500
+          );
+
+          if (isInteractKeyDown) {
+            (npc as NPC).interact();
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error in GameScene.setupCollisions:", error);
+    }
+  }
+
   // =============================================================================
   // MAP TRANSITION METHODS
   // =============================================================================
 
-  /**
-   * Changes the current map without restarting the scene
-   * @param mapKey The key of the new map to load
-   * @param destX Destination X coordinate for the player
-   * @param destY Destination Y coordinate for the player
-   * @param message Optional message to display when entering the map
-   */
   changeMap(mapKey: string, destX: number, destY: number, message?: string): void {
     try {
       // Prevent double transitions
@@ -851,13 +919,13 @@ export class GameScene extends Phaser.Scene {
           // Load the new map
           this.loadTiledMap();
 
-          // ADD: Initialize chests for new map
+          // Initialize chests for the new map
           this.initializeChests();
 
           // Set up new collisions
           this.setupCollisions();
 
-          // IMPORTANT: Re-initialize game systems for the new map
+          // Re-initialize game systems for the new map
           this.reinitializeSystemsForNewMap();
 
           // Reposition the player
@@ -906,9 +974,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Final setup after map transition is complete
-   */
   private finalizeMapTransition(): void {
     try {
       // Re-setup ItemHoverSystem after map transition
@@ -922,18 +987,10 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Cleans up resources from the current map before loading a new one
-   */
   private cleanupCurrentMap(): void {
     try {
-      // ADD: Clean up chest timers before clearing states
-      this.chestStates.forEach((chest) => {
-        if (chest.respawnTimer) {
-          chest.respawnTimer.destroy();
-        }
-      });
-      this.chestStates.clear();
+      // Clean up chest timers before clearing states
+      this.cleanupChests();
 
       // Clean up MonsterSpawnSystem first
       if (this.monsterSpawnSystem) {
@@ -941,7 +998,7 @@ export class GameScene extends Phaser.Scene {
         this.monsterSpawnSystem.cleanup();
       }
 
-      // Clean up ItemHoverSystem
+      // Clean up ItemHoverSystem first
       if (this.itemHoverSystem) {
         console.log("Cleaning up ItemHoverSystem during map change");
         this.itemHoverSystem.cleanup();
@@ -965,7 +1022,6 @@ export class GameScene extends Phaser.Scene {
         // Clean up layer references
         this.groundLayer = undefined;
         this.collisionLayer = undefined;
-        // REMOVED: this.chestLayer = undefined;
 
         // Destroy the map itself
         this.map.destroy();
@@ -1000,9 +1056,43 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * Refresh UI components after map change
-   */
+  private reinitializeSystemsForNewMap(): void {
+    try {
+      const store = useGameStore.getState();
+
+      // Clean up and reinitialize ItemHoverSystem
+      if (this.itemHoverSystem) {
+        this.itemHoverSystem.cleanup();
+      }
+      this.itemHoverSystem = new ItemHoverSystem();
+      store.registerSystem("itemHoverSystem", this.itemHoverSystem);
+
+      // Reinitialize monster spawn system for new map
+      if (this.monsterSpawnSystem) {
+        this.monsterSpawnSystem.cleanup();
+        this.monsterSpawnSystem.initialize();
+      }
+
+      // Reinitialize portal system
+      this.initPortalSystem();
+
+      // Reinitialize cursor position system
+      if (this.cursorPositionSystem) {
+        this.cursorPositionSystem.destroy();
+      }
+      this.cursorPositionSystem = new CursorPositionSystem(this, 32);
+      this.cursorPositionSystem.initialize();
+
+      console.log("Systems reinitialized for new map");
+    } catch (error) {
+      console.error("Error reinitializing systems for new map:", error);
+    }
+  }
+
+  // =============================================================================
+  // UTILITY METHODS
+  // =============================================================================
+
   private refreshUIComponents(): void {
     try {
       // Refresh player character UI components
@@ -1015,32 +1105,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   // =============================================================================
-  // UTILITY METHODS
-  // =============================================================================
-
-  initCursorPositionSystem(): void {
-    try {
-      // Create the cursor position system with the current scene and tile size
-      this.cursorPositionSystem = new CursorPositionSystem(this, 32);
-      this.cursorPositionSystem.initialize();
-    } catch (error) {
-      console.error("Error in GameScene.initCursorPositionSystem:", error);
-    }
-  }
-
-  // =============================================================================
   // CLEANUP
   // =============================================================================
 
   destroy(): void {
     try {
-      // ADD: Clean up chest timers
-      this.chestStates.forEach((chest) => {
-        if (chest.respawnTimer) {
-          chest.respawnTimer.destroy();
-        }
-      });
-      this.chestStates.clear();
+      // Clean up chest timers
+      this.cleanupChests();
 
       // Cleanup monster spawn system
       if (this.monsterSpawnSystem) {
@@ -1060,7 +1131,10 @@ export class GameScene extends Phaser.Scene {
         this.portalSystem.cleanup();
       }
 
-      // Note: Phaser scenes don't have a parent destroy method to call
+      // Remove key listeners
+      if (this.input?.keyboard) {
+        this.input.keyboard.off("keydown-E");
+      }
     } catch (error) {
       console.error("Error destroying GameScene:", error);
     }

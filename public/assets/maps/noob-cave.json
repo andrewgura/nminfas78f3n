@@ -189,6 +189,11 @@
                  "name":"",
                  "properties":[
                         {
+                         "name":"chestType",
+                         "type":"string",
+                         "value":"chest-closed"
+                        }, 
+                        {
                          "name":"id",
                          "type":"string",
                          "value":"noob-cave-chest-01"
@@ -201,7 +206,7 @@
                         {
                          "name":"respawnTime",
                          "type":"string",
-                         "value":"300"
+                         "value":"5"
                         }],
                  "rotation":0,
                  "type":"",
@@ -246,6 +251,38 @@
                  "width":32,
                  "x":-32,
                  "y":-32
+                }, 
+                {
+                 "height":32,
+                 "id":6,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"chestType",
+                         "type":"string",
+                         "value":"chest-closed"
+                        }, 
+                        {
+                         "name":"id",
+                         "type":"string",
+                         "value":"noob-cave-chest-02"
+                        }, 
+                        {
+                         "name":"lootTable",
+                         "type":"string",
+                         "value":"noob-cave-table-poor"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"string",
+                         "value":"5"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":-158.296334896648,
+                 "y":205.448671182908
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -254,7 +291,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":6,
+ "nextobjectid":7,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
