@@ -88,6 +88,7 @@ const ITEM_DATA: Record<string, ItemData> = {
     isTwoHanded: true,
     rarity: "common",
     sellValue: 10,
+    moveSpeed: 500,
   },
 
   boneWand: {

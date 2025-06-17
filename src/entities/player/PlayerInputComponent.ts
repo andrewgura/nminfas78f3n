@@ -4,7 +4,7 @@ import { MovementComponent } from "./MovementComponent";
 import { eventBus } from "@/utils/EventBus";
 import { useGameStore } from "@/stores/gameStore";
 import { autoAttackSystem } from "@/services/AutoAttackSystem";
-import { ChestLootTables } from "@/data/chest-loot-tables";
+// REMOVED: import { ChestLootTables } from "@/data/chest-loot-tables";
 
 export class PlayerInputComponent extends Component {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
@@ -98,79 +98,45 @@ export class PlayerInputComponent extends Component {
     }
   }
 
+  // UPDATED: Replace the entire checkChestClick method with sprite-based detection
   private checkChestClick(worldPoint: Phaser.Math.Vector2): boolean {
     try {
       const gameScene = this.entity.scene as any;
 
-      // Get both layers
-      const chestLayer = gameScene.chestLayer;
-      const interactLayer =
-        gameScene.interactLayer || gameScene.map?.getObjectLayer("interact-layer");
+      // Check if GameScene has the sprite-based chest methods
+      if (!gameScene.canOpenChestAtPosition) {
+        console.warn("GameScene doesn't have sprite-based chest methods");
+        return false;
+      }
 
-      if (!chestLayer || !interactLayer) return false;
+      // Find any chest near the click position
+      const chest = gameScene.canOpenChestAtPosition(worldPoint.x, worldPoint.y);
 
-      // Convert world point to tile coordinates
-      const tileX = Math.floor(worldPoint.x / 32);
-      const tileY = Math.floor(worldPoint.y / 32);
+      if (!chest) {
+        // No chest found at this position
+        return false;
+      }
 
-      // Get the tile at this position
-      const tile = chestLayer.getTileAt(tileX, tileY);
-
-      // If no chest tile found, return false
-      if (!tile) return false;
-
-      // Check player distance to chest
+      // Check if player is close enough to the chest
       const playerX = this.entity.x;
       const playerY = this.entity.y;
-      const chestCenterX = tileX * 32 + 16;
-      const chestCenterY = tileY * 32 + 16;
-
-      const distanceInPixels = Phaser.Math.Distance.Between(
-        playerX,
-        playerY,
-        chestCenterX,
-        chestCenterY
-      );
-      const distanceInTiles = distanceInPixels / 32;
+      const distanceToChest = Phaser.Math.Distance.Between(playerX, playerY, chest.x, chest.y);
+      const distanceInTiles = distanceToChest / 32;
 
       if (distanceInTiles > 1.5) {
         eventBus.emit("ui.message.show", "You are too far away to open this chest");
         return true;
       }
 
-      // Get chest properties from interact layer
-      if (interactLayer.objects && interactLayer.objects.length > 0) {
-        const interactObject = interactLayer.objects[0];
-
-        // Parse properties
-        let chestId = "unknown-chest";
-        let lootTable = "default";
-
-        if (interactObject.properties) {
-          for (const prop of interactObject.properties) {
-            if (prop.name === "id") chestId = prop.value;
-            if (prop.name === "lootTable") lootTable = prop.value;
-          }
-        }
-        eventBus.emit("ui.message.show", `You found a treasure chest!`);
-
-        // Update the tile to show open chest
-        tile.index += 1;
-
-        console.log(lootTable);
-
-        // Generate loot based on the loot table
-        ChestLootTables.generateLootFromTable(
-          lootTable,
-          chestCenterX,
-          chestCenterY,
-          (itemId, x, y) => gameScene.spawnItem(itemId, x, y)
-        );
-
+      // Try to open the chest using GameScene's method
+      if (gameScene.openChest && gameScene.openChest(chest)) {
+        // Chest was successfully opened
+        return true;
+      } else {
+        // Chest couldn't be opened (probably already open)
+        eventBus.emit("ui.message.show", "This chest is already open");
         return true;
       }
-
-      return false;
     } catch (error) {
       console.error("Error checking for chest click:", error);
       return false;
