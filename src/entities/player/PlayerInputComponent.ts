@@ -101,7 +101,6 @@ export class PlayerInputComponent extends Component {
   private checkChestClick(worldPoint: Phaser.Math.Vector2): boolean {
     try {
       const gameScene = this.entity.scene as any;
-      const store = useGameStore.getState();
 
       // Get both layers
       const chestLayer = gameScene.chestLayer;
@@ -153,15 +152,6 @@ export class PlayerInputComponent extends Component {
             if (prop.name === "lootTable") lootTable = prop.value;
           }
         }
-
-        // Check if chest is already open
-        if (store.isChestOpen(chestId)) {
-          eventBus.emit("ui.message.show", "This chest is already empty");
-          return true;
-        }
-
-        // Handle chest opening logic
-        store.setChestOpen(chestId);
         eventBus.emit("ui.message.show", `You found a treasure chest!`);
 
         // Update the tile to show open chest

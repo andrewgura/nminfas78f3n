@@ -86,11 +86,6 @@ export interface GameState {
   // Map state
   currentMap: string;
 
-  // Chest state
-  openedChests: {
-    [chestId: string]: number; // Timestamp when opened
-  };
-
   // System references
   systems?: Record<string, any>;
 
@@ -111,8 +106,6 @@ export interface GameState {
   updatePlayerGold: (amount: number) => void;
   updatePlayerMaxCapacity: (amount: number) => void;
   updatePlayerCurrentCapacity: (amount: number) => void;
-  isChestOpen: (chestId: string) => boolean;
-  setChestOpen: (chestId: string) => void;
   recalculateStats: () => void;
 }
 
@@ -312,7 +305,6 @@ const initialState = {
   inputFocused: false,
   setCollections: {},
   currentMap: "game-map",
-  openedChests: {},
   systems: {},
 };
 
@@ -632,21 +624,6 @@ export const useGameStore = create<GameState>()(
         playerCharacter: {
           ...state.playerCharacter,
           currentCapacity: Math.max(0, state.playerCharacter.currentCapacity + amount),
-        },
-      }));
-    },
-
-    // Chest methods
-    isChestOpen: (chestId) => {
-      const state = get();
-      return !state.openedChests[chestId];
-    },
-
-    setChestOpen: (chestId) => {
-      set((state) => ({
-        openedChests: {
-          ...state.openedChests,
-          [chestId]: Date.now(),
         },
       }));
     },

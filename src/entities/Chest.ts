@@ -1,17 +1,6 @@
 import { Entity } from "./Entity";
 import { eventBus } from "@/utils/EventBus";
-import { useGameStore } from "@/stores/gameStore";
 import { ItemBonusStats } from "@/types";
-
-// Define interfaces for type safety
-interface ChestState {
-  isOpen: boolean;
-  lastOpenedTime: number;
-}
-
-interface ChestStorage {
-  [key: string]: ChestState;
-}
 
 interface LootItem {
   templateId: string;
@@ -30,10 +19,8 @@ interface LootDrop {
 }
 
 export class Chest extends Entity {
-  private isOpen: boolean = false;
-  private lastOpenedTime: number = 0;
   private lootTable: string = "default";
-  private cooldownTimer: number = 30 * 60 * 1000; // 30 minutes in milliseconds
+  private respawnTime: number = 300; // Default 5 minutes in seconds
   private interactionZone: Phaser.GameObjects.Zone | null = null;
 
   constructor(
@@ -41,13 +28,14 @@ export class Chest extends Entity {
     x: number,
     y: number,
     id: string,
-    lootTable: string = "default"
+    lootTable: string = "default",
+    respawnTime: number = 300
   ) {
     super(scene, x, y, "chest-closed", id);
 
     this.lootTable = lootTable;
+    this.respawnTime = respawnTime;
     this.setupInteractionZone();
-    this.loadSavedState();
   }
 
   private setupInteractionZone(): void {
@@ -66,81 +54,39 @@ export class Chest extends Entity {
   }
 
   private handlePlayerNearby(): void {
-    // Show interaction hint when player is nearby
-    if (!this.isOpen && this.canOpen()) {
+    // Show interaction hint when player is nearby and chest is closed
+    if (this.texture.key === "chest-closed") {
       eventBus.emit("ui.message.show", "Click to open chest");
     }
   }
 
-  private loadSavedState(): void {
-    // Load chest state from localStorage or game state
-    const savedChests = localStorage.getItem("game_chests");
-
-    if (savedChests) {
-      const chestsData = JSON.parse(savedChests) as ChestStorage;
-      if (chestsData[this.id]) {
-        this.isOpen = chestsData[this.id].isOpen;
-        this.lastOpenedTime = chestsData[this.id].lastOpenedTime;
-
-        // Update visual state
-        if (this.isOpen) {
-          this.setTexture("chest-open");
-        }
-      }
-    }
-  }
-
-  private saveState(): void {
-    // Save chest state to localStorage or game state
-    let chestsData: ChestStorage = {};
-    const savedChests = localStorage.getItem("game_chests");
-
-    if (savedChests) {
-      chestsData = JSON.parse(savedChests) as ChestStorage;
-    }
-
-    chestsData[this.id] = {
-      isOpen: this.isOpen,
-      lastOpenedTime: this.lastOpenedTime,
-    };
-
-    localStorage.setItem("game_chests", JSON.stringify(chestsData));
-  }
-
-  public canOpen(): boolean {
-    const currentTime = Date.now();
-    return !this.isOpen || currentTime - this.lastOpenedTime > this.cooldownTimer;
-  }
-
   public open(): void {
-    if (!this.canOpen()) {
-      const remainingTime = this.getRemainingCooldownTime();
-      eventBus.emit("ui.message.show", `This chest will reset in ${remainingTime}`);
-      return;
-    }
-
-    this.isOpen = true;
-    this.lastOpenedTime = Date.now();
+    // Change to open texture
     this.setTexture("chest-open");
-    this.spawnLoot();
-    this.saveState();
 
+    // Spawn loot around the chest
+    this.spawnLoot();
+
+    // Emit opened event
     eventBus.emit("chest.opened", {
       id: this.id,
       position: { x: this.x, y: this.y },
     });
+
+    // Schedule respawn
+    this.scheduleRespawn();
   }
 
-  private getRemainingCooldownTime(): string {
-    const currentTime = Date.now();
-    const timeSinceOpened = currentTime - this.lastOpenedTime;
-    const remainingTime = this.cooldownTimer - timeSinceOpened;
+  private scheduleRespawn(): void {
+    // Convert seconds to milliseconds
+    const respawnTimeMs = this.respawnTime * 1000;
 
-    // Format as minutes:seconds
-    const minutes = Math.floor(remainingTime / (60 * 1000));
-    const seconds = Math.floor((remainingTime % (60 * 1000)) / 1000);
-
-    return `${minutes}m ${seconds}s`;
+    // Create a timer to respawn the chest
+    this.scene.time.delayedCall(respawnTimeMs, () => {
+      this.setTexture("chest-closed");
+      eventBus.emit("ui.message.show", "A chest has respawned nearby");
+      console.log(`Chest ${this.id} respawned`);
+    });
   }
 
   private spawnLoot(): void {
@@ -163,8 +109,7 @@ export class Chest extends Entity {
   }
 
   private getLootFromTable(lootTableId: string): LootDrop[] {
-    // This would be replaced with your actual loot table system
-    // Example implementation:
+    // Example loot tables - replace with your actual loot table system
     const lootTables: LootTables = {
       default: [
         { templateId: "sword1", chance: 0.5 },
@@ -211,14 +156,12 @@ export class Chest extends Entity {
     return loot;
   }
 
+  public isOpen(): boolean {
+    return this.texture.key === "chest-open";
+  }
+
   update(time: number, delta?: number): void {
     super.update(time, delta);
-
-    // Check if chest should automatically reset
-    if (this.isOpen && Date.now() - this.lastOpenedTime > this.cooldownTimer) {
-      this.isOpen = false;
-      this.setTexture("chest-closed");
-    }
 
     // Update interaction zone position
     if (this.interactionZone) {

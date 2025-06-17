@@ -233,6 +233,11 @@
                          "name":"lootTable",
                          "type":"string",
                          "value":"noob-cave-table-poor"
+                        }, 
+                        {
+                         "name":"respawnTime",
+                         "type":"string",
+                         "value":"300"
                         }],
                  "rotation":0,
                  "type":"",
