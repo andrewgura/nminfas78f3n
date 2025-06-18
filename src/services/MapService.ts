@@ -32,7 +32,7 @@ class MapServiceClass {
     "noob-cave-map": {
       displayName: "Noob Cave",
       defaultSpawn: { x: 0, y: 0 },
-      chunkInfo: { startX: -16, startY: -16 },
+      chunkInfo: { startX: -32, startY: -32 },
     },
   };
 

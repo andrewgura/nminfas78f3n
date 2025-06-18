@@ -119,7 +119,19 @@ export class BootScene extends Phaser.Scene {
         this.load.image(key, `assets/tileset/collision/${file}`);
       });
 
-      ["1414.bmp", "63.bmp", "315.bmp"].forEach((file) => {
+      [
+        "1414.bmp",
+        "63.bmp",
+        "315.bmp",
+        "123.bmp",
+        "124.bmp",
+        "125.bmp",
+        "122.bmp",
+        "3420.bmp",
+        "3419.bmp",
+        "911.bmp",
+        "1122.bmp",
+      ].forEach((file) => {
         const key = `../tileset/noob-cave/${file}`;
         this.load.image(key, `assets/tileset/noob-cave/${file}`);
       });
