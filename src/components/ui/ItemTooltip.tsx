@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ItemData, ItemInstance, ItemType } from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
-import { ItemDictionary } from "../../services/ItemDictionaryService";
 
 interface ItemTooltipProps {
   itemInstance?: ItemInstance;
@@ -115,39 +114,6 @@ const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible, positi
       maxWidth: "320px",
       width: "auto",
     };
-
-    // If position is provided (from hover), use it
-    if (position) {
-      // Make sure tooltip stays within viewport
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const tooltipWidth = 320; // estimated max width
-      const tooltipHeight = isProduct ? 400 : 300; // estimated height
-
-      let left = position.x + 10;
-      let top = position.y;
-
-      // Adjust if tooltip would go off right edge
-      if (left + tooltipWidth > viewportWidth - 20) {
-        left = position.x - tooltipWidth - 10;
-      }
-
-      // Adjust if tooltip would go off bottom edge
-      if (top + tooltipHeight > viewportHeight - 20) {
-        top = viewportHeight - tooltipHeight - 20;
-      }
-
-      // Adjust if tooltip would go off top edge
-      if (top < 20) {
-        top = 20;
-      }
-
-      return {
-        ...baseStyle,
-        left: Math.max(10, left),
-        top: Math.max(10, top),
-      };
-    }
 
     // Default positioning (for inventory tooltips)
     return {

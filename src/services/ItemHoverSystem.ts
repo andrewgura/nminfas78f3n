@@ -1,8 +1,7 @@
 import { eventBus } from "../utils/EventBus";
-import { debounce, throttle } from "../utils/FunctionUtils";
+import { throttle } from "../utils/FunctionUtils";
 import { useGameStore } from "../stores/gameStore";
 import { Item } from "../entities/Item";
-import { ItemInstanceManager } from "../utils/ItemInstanceManager";
 
 export class ItemHoverSystem {
   public currentHoveredItem: Item | null = null;
@@ -189,13 +188,9 @@ export class ItemHoverSystem {
         bonusStats: closestItem.bonusStats,
       };
 
-      // Convert screen position for tooltip
-      const screenPos = this.getScreenPosition(closestItem, scene);
-
       // Emit event for React tooltip component to display
       eventBus.emit("item.world.tooltip.show", {
         itemInstance,
-        position: screenPos,
       });
 
       // Emit hover start event
