@@ -6,11 +6,9 @@ const GameItemTooltip: React.FC = () => {
   const [tooltipData, setTooltipData] = useState<{
     visible: boolean;
     itemInstance?: any;
-    position: { x: number; y: number };
   }>({
     visible: false,
     itemInstance: undefined,
-    position: { x: 0, y: 0 },
   });
 
   // Listen for tooltip show/hide events
@@ -19,7 +17,6 @@ const GameItemTooltip: React.FC = () => {
       setTooltipData({
         visible: true,
         itemInstance: data.itemInstance,
-        position: data.position || { x: window.innerWidth / 2, y: window.innerHeight / 2 },
       });
     }
   });
@@ -48,13 +45,7 @@ const GameItemTooltip: React.FC = () => {
     };
   }, []);
 
-  return (
-    <ItemTooltip
-      itemInstance={tooltipData.itemInstance}
-      visible={tooltipData.visible}
-      position={tooltipData.position}
-    />
-  );
+  return <ItemTooltip itemInstance={tooltipData.itemInstance} visible={tooltipData.visible} />;
 };
 
 export default GameItemTooltip;

@@ -34,7 +34,6 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
   isValid = true,
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const slotRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +82,7 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
     itemData = ItemInstanceManager.getCombinedStats(itemInstance);
 
     if (itemData && itemData.texture) {
-      const folder = getCategoryFolder(itemData.category);
+      const folder = ItemDictionary.getItemFolder(itemData);
       itemImageUrl = `assets/equipment/${folder}/${itemData.texture}.png`;
     }
   }
@@ -186,13 +185,6 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
   const handleMouseEnter = (e: React.MouseEvent) => {
     if (!itemInstance) return;
 
-    // Calculate tooltip position
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.right + 10,
-      y: rect.top,
-    });
-
     setTooltipVisible(true);
   };
 
@@ -259,11 +251,7 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
       </div>
 
       {/* Render the tooltip component */}
-      <ItemTooltip
-        itemInstance={itemInstance}
-        visible={tooltipVisible}
-        position={tooltipPosition}
-      />
+      <ItemTooltip itemInstance={itemInstance} visible={tooltipVisible} />
     </>
   );
 };

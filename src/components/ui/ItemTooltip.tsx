@@ -5,10 +5,9 @@ import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 interface ItemTooltipProps {
   itemInstance?: ItemInstance;
   visible: boolean;
-  position?: { x: number; y: number };
 }
 
-const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible, position }) => {
+const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible }) => {
   const [itemData, setItemData] = useState<ItemData | null>(null);
 
   // Update item data when instance changes
@@ -74,22 +73,22 @@ const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible, positi
   };
 
   // Get display-friendly category name
-  const getCategoryDisplayName = (category?: string): string => {
-    if (!category) return "";
+  const getCategoryDisplayName = (category?: string) => {
+    if (!category) return "Unknown";
 
     const categoryNames: Record<string, string> = {
-      weapon_melee: "Melee",
-      weapon_magic: "Magic",
-      weapon_ranged: "Ranged",
+      weapon_melee: "Melee Weapon",
+      weapon_magic: "Magic Weapon",
+      weapon_ranged: "Ranged Weapon",
       armor: "Armor",
       shield: "Shield",
       helmet: "Helmet",
       amulet: "Amulet",
       trinket: "Trinket",
-      food: "Food",
-      product: "Product", // Add product category name
       consumable: "Consumable",
+      food: "Food",
       material: "Material",
+      product: "Product",
       currency: "Currency",
       quest: "Quest Item",
     };
@@ -115,7 +114,6 @@ const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible, positi
       width: "auto",
     };
 
-    // Default positioning (for inventory tooltips)
     return {
       ...baseStyle,
       right: 235, // Adjusted to account for sidebar

@@ -313,43 +313,15 @@ export interface IItemDictionary {
   getItemsBySet(setType: string): ItemData[];
 }
 
-class ItemDictionaryService implements IItemDictionary {
+class ItemDictionaryService {
   private itemDatabase: Record<string, ItemData> = {};
 
   constructor() {
-    this.initialize();
-  }
-
-  private initialize(): void {
-    try {
-      // Load all items from the data
-      Object.values(ITEM_DATA).forEach((item) => {
-        this.registerItem(item);
-      });
-
-      // Emit initialization event
-      eventBus.emit("itemDictionary.initialized", {
-        count: Object.keys(this.itemDatabase).length,
-      });
-    } catch (error) {
-      console.error("Error initializing item dictionary:", error);
-    }
-  }
-
-  private registerItem(item: ItemData): void {
-    if (!item.id) {
-      console.error("Invalid item data: missing id", item);
-      return;
-    }
-    this.itemDatabase[item.id] = item;
+    this.itemDatabase = { ...ITEM_DATA };
   }
 
   getItem(itemId: string): ItemData | null {
     return this.itemDatabase[itemId] || null;
-  }
-
-  getItemName(itemId: string): string {
-    return this.itemDatabase[itemId]?.name || "Unknown Item";
   }
 
   getItemType(itemId: string): string {
@@ -399,13 +371,13 @@ class ItemDictionaryService implements IItemDictionary {
       trinket: "trinket",
       food: "food",
       product: "products",
-      currency: "valueables",
-      material: "valueables",
-      consumable: "valueables",
-      quest: "valueables",
+      currency: "valuables",
+      material: "valuables",
+      consumable: "valuables",
+      quest: "valuables",
     };
 
-    return item.category ? categoryToFolderMap[item.category] || "valueables" : "valueables";
+    return categoryToFolderMap[item.category!];
   }
 }
 

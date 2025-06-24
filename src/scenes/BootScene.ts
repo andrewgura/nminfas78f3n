@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
 import { MonsterAnimationSystem } from "@/services/MonsterAnimationSystems";
 import { MonsterDictionary } from "@/services/MonsterDictionaryService";
@@ -242,38 +243,14 @@ export class BootScene extends Phaser.Scene {
 
   loadItemAssets(): void {
     try {
-      // Get all item data
       const items = ItemDictionary.getAllItems();
       const itemIds = Object.keys(items);
-
-      // Map ItemCategory to folder names
-      const categoryToFolderMap: Record<string, string> = {
-        weapon_melee: "melee-weapons",
-        weapon_magic: "magic",
-        weapon_ranged: "ranged",
-        armor: "chest",
-        shield: "offhand",
-        helmet: "helmet",
-        amulet: "necklace",
-        trinket: "trinket",
-        product: "products",
-        currency: "valuables",
-        food: "food",
-        material: "valuables",
-        consumable: "valuables",
-        quest: "valuables",
-      };
 
       // Load each item's texture
       itemIds.forEach((itemId) => {
         const item = items[itemId];
         if (item && item.texture) {
-          // Get folder based on item category
-          const folder = item.category
-            ? categoryToFolderMap[item.category.toLowerCase()] || "valuables"
-            : "valuables";
-
-          // Load the image with correct path
+          const folder = ItemDictionary.getItemFolder(item);
           this.load.image(item.texture, `assets/equipment/${folder}/${item.texture}.png`);
         }
       });

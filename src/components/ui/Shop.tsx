@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
 import { useEventBus, useEmitEvent } from "../../hooks/useEventBus";
-
 import { ItemDictionary } from "@/services/ItemDictionaryService";
 import { ShopItem } from "@/services/NPCService";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
@@ -17,8 +16,7 @@ const BuyItemRow: React.FC<BuyItemRowProps> = ({ item, onBuy, canAfford }) => {
 
   if (!itemData) return null;
 
-  // Get folder for item image
-  const folder = getItemFolder(itemData);
+  const folder = ItemDictionary.getItemFolder(itemData);
   const imageSrc = `assets/equipment/${folder}/${itemData.texture}.png`;
 
   return (
@@ -54,8 +52,7 @@ const SellItemRow: React.FC<SellItemRowProps> = ({ instanceId, templateId, sellV
 
   if (!itemData) return null;
 
-  // Get folder for item image
-  const folder = getItemFolder(itemData);
+  const folder = ItemDictionary.getItemFolder(itemData);
   const imageSrc = `assets/equipment/${folder}/${itemData.texture}.png`;
 
   return (
@@ -73,26 +70,6 @@ const SellItemRow: React.FC<SellItemRowProps> = ({ instanceId, templateId, sellV
       </button>
     </div>
   );
-};
-
-// Helper function to get folder for item image
-const getItemFolder = (item: any): string => {
-  const categoryToFolderMap: Record<string, string> = {
-    weapon_melee: "melee-weapons",
-    weapon_magic: "magic",
-    weapon_ranged: "ranged",
-    armor: "chest",
-    shield: "offhand",
-    helmet: "helmet",
-    amulet: "necklace",
-    trinket: "trinket",
-    currency: "valuables",
-    material: "valuables",
-    consumable: "valuables",
-    quest: "valuables",
-  };
-
-  return item.category ? categoryToFolderMap[item.category] || "valuables" : "valuables";
 };
 
 const Shop: React.FC = () => {

@@ -37,7 +37,7 @@ const SetSlotComponent: React.FC<SetSlotProps> = ({
   if (!isEmpty) {
     const itemData = ItemDictionary.getItem(itemId);
     if (itemData?.texture) {
-      const folder = getItemFolder(itemData);
+      const folder = ItemDictionary.getItemFolder(itemData);
       itemImageUrl = `assets/equipment/${folder}/${itemData.texture}.png`;
     }
   }
@@ -66,26 +66,6 @@ const SetSlotComponent: React.FC<SetSlotProps> = ({
     </div>
   );
 };
-
-// Helper function to get folder for item image
-function getItemFolder(item: ItemData): string {
-  const categoryToFolderMap: Record<string, string> = {
-    weapon_melee: "melee-weapons",
-    weapon_magic: "magic",
-    weapon_ranged: "ranged",
-    armor: "chest",
-    shield: "offhand",
-    helmet: "helmet",
-    amulet: "necklace",
-    trinket: "trinket",
-    currency: "valuables",
-    material: "valuables",
-    consumable: "valuables",
-    quest: "valuables",
-  };
-
-  return item.category ? categoryToFolderMap[item.category] || "valuables" : "valuables";
-}
 
 interface ConfirmDialogProps {
   isOpen: boolean;
