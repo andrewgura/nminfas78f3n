@@ -285,6 +285,18 @@ const ITEM_DATA: Record<string, ItemData> = {
     mpRegen: 2,
     stackable: true,
   },
+
+  goldCoins: {
+    id: "goldCoins",
+    name: "Gold Coins",
+    type: ItemType.PRODUCT,
+    category: ItemCategory.CURRENCY,
+    weight: 0.1,
+    stackable: true,
+    description: "Shiny gold coins used as currency throughout the realm",
+    texture: "gold-coins",
+    sellValue: 1,
+  },
 };
 
 // Define interface for the class
