@@ -89,13 +89,6 @@ function App() {
                     <span className="resource-value">100</span>
                   </div>
                 </div>
-                <div className="resource-row">
-                  <div className="resource-capacity">
-                    <span className="resource-icon">📦</span>
-                    <span className="resource-label">CAPACITY</span>
-                    <span className="resource-value">10/40</span>
-                  </div>
-                </div>
               </div>
               <Inventory />
             </div>
