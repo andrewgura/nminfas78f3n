@@ -35,7 +35,6 @@ export class MonsterSpawnSystem {
       this.cleanup();
       this.loadSpawnPointsFromMap();
       this.spawnInitialMonsters();
-      console.log(`MonsterSpawnSystem initialized with ${this.spawnPoints.size} spawn points`);
     } catch (error) {
       console.error("Error initializing MonsterSpawnSystem:", error);
       eventBus.emit("error.spawn.initialize", { error });
@@ -54,7 +53,6 @@ export class MonsterSpawnSystem {
     // Get the monster-layer object layer
     const monsterLayer = this.scene.map.getObjectLayer("monster-layer");
     if (!monsterLayer) {
-      console.log("No monster-layer found in current map");
       return;
     }
 
@@ -108,9 +106,6 @@ export class MonsterSpawnSystem {
         };
 
         this.spawnPoints.set(spawnPoint.id, spawnPoint);
-        console.log(
-          `Added spawn point: ${spawnPoint.id} for ${monsterType} at Tiled(${tiledX}, ${tiledY}) -> Phaser(${spawnPoint.x}, ${spawnPoint.y})`
-        );
       } catch (error) {
         console.error("Error processing spawn point object:", obj, error);
       }
@@ -173,8 +168,6 @@ export class MonsterSpawnSystem {
 
         // Add to spawn point's monster list
         spawnPoint.currentMonsters.push(monster);
-
-        console.log(`Spawned ${spawnPoint.monsterType} at spawn point ${spawnPoint.id}`);
       }
     } catch (error) {
       console.error(`Error spawning monster at spawn point ${spawnPoint.id}:`, error);
@@ -228,10 +221,6 @@ export class MonsterSpawnSystem {
       });
 
       this.respawnTimers.set(spawnPoint.id, timer);
-
-      console.log(
-        `Scheduled respawn for spawn point ${spawnPoint.id} in ${spawnPoint.respawnTime / 1000} seconds`
-      );
     } catch (error) {
       console.error(`Error scheduling respawn for spawn point ${spawnPoint.id}:`, error);
     }
@@ -259,8 +248,6 @@ export class MonsterSpawnSystem {
 
       // Clear spawn points
       this.spawnPoints.clear();
-
-      console.log("MonsterSpawnSystem cleanup completed");
     } catch (error) {
       console.error("Error during MonsterSpawnSystem cleanup:", error);
     }

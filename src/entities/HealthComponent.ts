@@ -76,8 +76,6 @@ export class HealthComponent extends Component {
         health: this.character.health,
         maxHealth: this.character.maxHealth,
       });
-
-      console.log(`Health bar created for entity: ${this.entity.id}`);
     } catch (error) {
       eventBus.emit("error.healthbar.create", {
         entityId: this.entity.id,
@@ -164,7 +162,6 @@ export class HealthComponent extends Component {
 
       // Recreate the health bar to ensure it's properly visible
       this.createHealthBar();
-      console.log(`Health bar force refreshed for entity: ${this.entity.id}`);
     } catch (error) {
       console.error(`Error force refreshing health bar for entity ${this.entity.id}:`, error);
     }

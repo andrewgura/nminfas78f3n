@@ -36,13 +36,13 @@ const ItemTooltip: React.FC<ItemTooltipProps> = ({ itemInstance, visible, positi
       trinket: "trinket",
       food: "food",
       product: "products",
-      currency: "valueables",
-      material: "valueables",
-      consumable: "valueables",
-      quest: "valueables",
+      currency: "valuables",
+      material: "valuables",
+      consumable: "valuables",
+      quest: "valuables",
     };
 
-    return item.category ? categoryToFolderMap[item.category] || "valueables" : "valueables";
+    return item.category ? categoryToFolderMap[item.category] || "valuables" : "valuables";
   };
 
   // Get image URL

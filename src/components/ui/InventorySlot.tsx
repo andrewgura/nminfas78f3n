@@ -65,13 +65,13 @@ const InventorySlot: React.FC<InventorySlotProps> = ({
       trinket: "trinket",
       food: "food",
       product: "products",
-      currency: "valueables",
-      material: "valueables",
-      consumable: "valueables",
-      quest: "valueables",
+      currency: "valuables",
+      material: "valuables",
+      consumable: "valuables",
+      quest: "valuables",
     };
 
-    return category ? categoryToFolderMap[category] || "valueables" : "valueables";
+    return category ? categoryToFolderMap[category] || "valuables" : "valuables";
   };
 
   // Get item data if slot has an item

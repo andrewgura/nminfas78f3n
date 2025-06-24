@@ -257,11 +257,11 @@ export class BootScene extends Phaser.Scene {
         amulet: "necklace",
         trinket: "trinket",
         product: "products",
-        currency: "valueables",
+        currency: "valuables",
         food: "food",
-        material: "valueables",
-        consumable: "valueables",
-        quest: "valueables",
+        material: "valuables",
+        consumable: "valuables",
+        quest: "valuables",
       };
 
       // Load each item's texture
@@ -270,8 +270,8 @@ export class BootScene extends Phaser.Scene {
         if (item && item.texture) {
           // Get folder based on item category
           const folder = item.category
-            ? categoryToFolderMap[item.category.toLowerCase()] || "valueables"
-            : "valueables";
+            ? categoryToFolderMap[item.category.toLowerCase()] || "valuables"
+            : "valuables";
 
           // Load the image with correct path
           this.load.image(item.texture, `assets/equipment/${folder}/${item.texture}.png`);

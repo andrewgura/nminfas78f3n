@@ -122,10 +122,6 @@ export class PlayerInputComponent extends Component {
       const clickedTileX = tileCoords.x;
       const clickedTileY = tileCoords.y;
 
-      console.log(
-        `Click at world (${worldPoint.x}, ${worldPoint.y}) -> tile (${clickedTileX}, ${clickedTileY})`
-      );
-
       // Check if there's a chest at this tile
       const chest = gameScene.canOpenChestAtTile(clickedTileX, clickedTileY);
 
@@ -200,7 +196,6 @@ export class PlayerInputComponent extends Component {
     try {
       // Try to open the chest using GameScene's method
       if (gameScene.openChest && gameScene.openChest(chest)) {
-        console.log(`Successfully opened chest: ${chest.id}`);
         return true;
       } else {
         // Chest couldn't be opened (probably already open)

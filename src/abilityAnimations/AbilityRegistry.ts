@@ -54,10 +54,6 @@ export class AbilityRegistry {
       this.register("buff", new FocusAbility());
       this.register("tileBasedEnergyWave", new EnergyWaveAbility());
       this.register("rainOfArrows", new RainOfArrowsAbility());
-
-      console.log(
-        `AbilityRegistry: Registered ${Object.keys(this.strategies).length} ability strategies`
-      );
     } catch (error) {
       console.error("Error initializing AbilityRegistry:", error);
     }

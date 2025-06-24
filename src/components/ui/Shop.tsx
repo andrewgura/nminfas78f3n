@@ -86,13 +86,13 @@ const getItemFolder = (item: any): string => {
     helmet: "helmet",
     amulet: "necklace",
     trinket: "trinket",
-    currency: "valueables",
-    material: "valueables",
-    consumable: "valueables",
-    quest: "valueables",
+    currency: "valuables",
+    material: "valuables",
+    consumable: "valuables",
+    quest: "valuables",
   };
 
-  return item.category ? categoryToFolderMap[item.category] || "valueables" : "valueables";
+  return item.category ? categoryToFolderMap[item.category] || "valuables" : "valuables";
 };
 
 const Shop: React.FC = () => {

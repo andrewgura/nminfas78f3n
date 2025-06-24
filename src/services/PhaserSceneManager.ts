@@ -35,10 +35,6 @@ class PhaserSceneManagerService {
       const activeScenes = game.scene.getScenes(true);
       if (activeScenes && activeScenes.length > 0) {
         this.currentScene = activeScenes[0];
-        console.log(
-          "PhaserSceneManager initialized with active scene:",
-          this.currentScene.scene.key
-        );
       } else {
         console.log("PhaserSceneManager initialized but no active scene found");
       }
@@ -48,8 +44,6 @@ class PhaserSceneManagerService {
 
       // Emit initialization event
       eventBus.emit("phaserSceneManager.initialized", { game });
-
-      console.log("PhaserSceneManager initialized");
     } catch (error) {
       console.error("Error initializing PhaserSceneManager:", error);
     } finally {
@@ -68,21 +62,18 @@ class PhaserSceneManagerService {
       // When a scene starts or resumes
       scene.events.on("create", () => {
         this.currentScene = scene;
-        console.log(`Scene switched to: ${scene.scene.key}`);
         eventBus.emit("scene.switched", scene);
       });
 
       // Also track when a scene becomes active
       scene.events.on("start", () => {
         this.currentScene = scene;
-        console.log(`Scene started: ${scene.scene.key}`);
         eventBus.emit("scene.started", scene);
       });
 
       // Track when a scene resumes
       scene.events.on("resume", () => {
         this.currentScene = scene;
-        console.log(`Scene resumed: ${scene.scene.key}`);
         eventBus.emit("scene.resumed", scene);
       });
     });

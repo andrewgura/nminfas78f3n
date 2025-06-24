@@ -59,9 +59,6 @@ export class DirectionalStrategy extends BaseStrategy implements AnimationStrate
         // Apply damage to monsters in the affected tiles
         if (damage > 0) {
           const hitCount = this.applyDamageToMonstersInTiles(scene, affectedTiles, damage, false);
-          if (hitCount > 0) {
-            console.log(`DirectionalStrategy hit ${hitCount} monsters`);
-          }
         }
       }
 

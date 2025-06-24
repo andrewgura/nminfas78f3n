@@ -360,10 +360,6 @@ export class ExpandingStrategy implements AnimationStrategy {
 
       // Store the key with the ability ID for lookup
       ExpandingStrategy.validMonstersKeysByAbility.set(abilityId, validMonstersKey);
-
-      console.log(
-        `Pre-filtered monsters: ${monstersInCone.size} valid out of ${monsters.length} total`
-      );
     } catch (error) {
       console.error("Error in ExpandingStrategy.prefilterMonstersInCone:", error);
     }

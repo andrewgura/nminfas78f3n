@@ -16,7 +16,6 @@ export class CursorPositionSystem {
     try {
       this.createDisplayElement();
       this.setupPointerMoveListener();
-      console.log("CursorPositionSystem initialized");
     } catch (error) {
       console.error("Error in CursorPositionSystem.initialize:", error);
     }

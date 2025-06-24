@@ -31,10 +31,7 @@ export class MovementComponent extends Component {
     try {
       const gameState = useGameStore.getState();
 
-      // SIMPLIFIED: Use the single totalMoveSpeed value directly
       this.moveSpeed = gameState.calculatedStats.totalMoveSpeed;
-
-      console.log(`MovementComponent: Updated move speed to ${this.moveSpeed}`);
     } catch (error) {
       console.error("Error updating move speed from store:", error);
       this.moveSpeed = 250; // Fallback to base speed
@@ -42,14 +39,11 @@ export class MovementComponent extends Component {
   }
 
   /**
-   * SIMPLIFIED: Handle move speed update events from GameStore
+   * Handle move speed update events from GameStore
    */
   private handleMoveSpeedUpdate(newSpeed: number): void {
     try {
-      // SIMPLIFIED: Direct assignment of new speed
       this.moveSpeed = newSpeed;
-
-      console.log(`MovementComponent: Move speed updated to ${this.moveSpeed}`);
 
       // Emit event for other systems that might need to know
       eventBus.emit("entity.movement.speed.updated", {

@@ -22,8 +22,6 @@ export class Chest extends Entity {
 
     // Set up physics for the chest sprite
     this.setupPhysics();
-
-    console.log(`Created chest ${id} at (${x}, ${y}) with loot table: ${lootTable}`);
   }
 
   private setupPhysics(): void {
@@ -65,7 +63,6 @@ export class Chest extends Entity {
 
   destroy(): void {
     try {
-      console.log(`Destroying chest ${this.id}`);
       super.destroy();
     } catch (error) {
       console.error("Error destroying chest:", error);

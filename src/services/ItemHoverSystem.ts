@@ -31,7 +31,6 @@ export class ItemHoverSystem {
       this.setupOrphanedGlowCleanup();
 
       this.isInitialized = true;
-      console.log("ItemHoverSystem successfully initialized");
 
       // Subscribe to scene changes to update listeners
       eventBus.on("scene.switched", this.handleSceneChange.bind(this));
@@ -275,8 +274,6 @@ export class ItemHoverSystem {
     this.currentScene = null;
     this.registeredScenes.clear();
     this.isInitialized = false;
-
-    console.log("ItemHoverSystem cleaned up completely");
   }
 
   destroy(): void {

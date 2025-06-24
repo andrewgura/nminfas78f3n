@@ -300,8 +300,6 @@ export class PlayerCharacter extends Character {
       if (healthComponent && typeof healthComponent.forceRefresh === "function") {
         healthComponent.forceRefresh();
       }
-
-      console.log("PlayerCharacter UI components refreshed");
     } catch (error) {
       console.error("Error refreshing PlayerCharacter UI components:", error);
       eventBus.emit("error.player.refresh", { error });

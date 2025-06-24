@@ -390,9 +390,6 @@ export class ProjectileStrategy extends BaseStrategy implements AnimationStrateg
           const actualDamage = Math.max(1, Math.floor(damage * falloff));
 
           if (monster.takeDamage) {
-            console.log(
-              `Area damage to monster at distance ${distance.toFixed(1)}, applying ${actualDamage} damage`
-            );
             monster.takeDamage(actualDamage);
             this.showDamageEffect(scene, monster, actualDamage);
           }

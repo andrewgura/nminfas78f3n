@@ -22,9 +22,6 @@ class SkillProgressionSystemService {
   initialize(): void {
     // Subscribe to damage events
     eventBus.on("damage.dealt", this.handleDamageDealt.bind(this));
-
-    // Log initialization
-    console.log("SkillProgressionSystem initialized");
   }
 
   /**
@@ -102,11 +99,6 @@ class SkillProgressionSystemService {
 
       // Update skill in store
       store.updateSkill(skillId, currentExp);
-
-      // Log for debugging
-      console.log(
-        `Awarded ${points} points to ${skillId}. New level: ${level}, Exp: ${currentExp}/${expForNextLevel}`
-      );
     } catch (error) {
       console.error("Error in awardSkillPoints:", error);
     }

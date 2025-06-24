@@ -106,10 +106,6 @@ class MonsterDictionaryService {
       eventBus.emit("monsterDictionary.initialized", {
         count: Object.keys(this.monsters).length,
       });
-
-      console.log(
-        `MonsterDictionary initialized with ${Object.keys(this.monsters).length} monsters`
-      );
     } catch (error) {
       console.error("Error initializing monster dictionary:", error);
     }

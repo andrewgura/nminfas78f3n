@@ -203,8 +203,6 @@ export class GameScene extends Phaser.Scene {
       this.monsters = this.add.group();
       this.npcs = this.add.group();
       this.chests = this.add.group();
-
-      console.log("Game entity groups created successfully");
     } catch (error) {
       console.error("Error creating game groups:", error);
       eventBus.emit("ui.error.show", `Error creating game groups: ${(error as Error).message}`);
@@ -259,8 +257,6 @@ export class GameScene extends Phaser.Scene {
 
       // Setup collisions
       this.setupCollisions();
-
-      console.log("Game systems initialized successfully");
     } catch (error) {
       console.error("Error initializing game systems:", error);
     }
@@ -277,7 +273,6 @@ export class GameScene extends Phaser.Scene {
       if (this.playerCharacter) {
         this.portalSystem = new PortalSystem(this, this.playerCharacter);
         this.portalSystem.setupPortals();
-        console.log("Portal system initialized");
       }
     } catch (error) {
       console.error("Error initializing portal system:", error);
@@ -346,10 +341,6 @@ export class GameScene extends Phaser.Scene {
             // Use MapService to convert tile coordinates to proper Phaser world coordinates
             const phaserCoords = MapService.tiledToPhaser(currentMap, tileX, tileY);
 
-            console.log(
-              `Tiled object: x=${obj.x}, y=${obj.y} -> Center: x=${objCenterX}, y=${objCenterY} -> Tile: x=${tileX}, y=${tileY} -> Phaser: x=${phaserCoords.x}, y=${phaserCoords.y}`
-            );
-
             const chest = this.spawnChest(
               chestId,
               phaserCoords.x,
@@ -363,16 +354,10 @@ export class GameScene extends Phaser.Scene {
               // Store the tile coordinates in the chest for interaction checking
               (chest as any).tileX = tileX;
               (chest as any).tileY = tileY;
-
-              console.log(
-                `Spawned chest sprite: ${chestId} at position (${phaserCoords.x}, ${phaserCoords.y}) with respawn time ${respawnTime}s`
-              );
             }
           }
         }
       });
-
-      console.log(`Spawned ${this.chestStates.size} chest sprites`);
     } catch (error) {
       console.error("Error initializing chests:", error);
     }
@@ -417,7 +402,6 @@ export class GameScene extends Phaser.Scene {
 
       this.chestStates.set(chestId, chestState);
 
-      console.log(`Created chest ${chestId} at (${x}, ${y}) with loot table: ${lootTable}`);
       return chest;
     } catch (error) {
       console.error("Error spawning chest:", error);
@@ -504,7 +488,6 @@ export class GameScene extends Phaser.Scene {
       this.scheduleChestRespawn(chestState);
 
       eventBus.emit("ui.message.show", `You found a treasure chest!`);
-      console.log(`Opened chest ${chestState.id} with loot table: ${chestState.lootTable}`);
 
       return true;
     } catch (error) {
@@ -530,7 +513,6 @@ export class GameScene extends Phaser.Scene {
           chestState.chestSprite.setActive(true);
           chestState.chestSprite.setTexture("chest-closed");
 
-          console.log(`Chest ${chestState.id} has respawned`);
           eventBus.emit("ui.message.show", "A chest has respawned nearby!");
         }
       );
@@ -555,8 +537,6 @@ export class GameScene extends Phaser.Scene {
       if (this.chests) {
         this.chests.clear(true, true);
       }
-
-      console.log("Chest cleanup completed");
     } catch (error) {
       console.error("Error cleaning up chests:", error);
     }
@@ -567,45 +547,25 @@ export class GameScene extends Phaser.Scene {
   // =============================================================================
 
   public debugChestPositions(): void {
-    console.log("=== CHEST DEBUG INFO ===");
-    console.log(`Total chests: ${this.chestStates.size}`);
-
     this.chestStates.forEach((chestState, chestId) => {
       const chest = chestState.chestSprite;
-      console.log(`Chest ${chestId}:`);
-      console.log(`  World position: (${chest.x}, ${chest.y})`);
-      console.log(`  Tile position: (${(chest as any).tileX}, ${(chest as any).tileY})`);
-      console.log(`  Is open: ${chestState.isOpen}`);
-      console.log(`  Visible: ${chest.visible}`);
-      console.log(`  Active: ${chest.active}`);
     });
 
     if (this.interactLayer) {
-      console.log("=== INTERACT LAYER OBJECTS ===");
       this.interactLayer.objects.forEach((obj: any, index: number) => {
         if (obj.properties) {
           const hasChestId = obj.properties.some((prop: any) => prop.name === "id");
           if (hasChestId) {
-            console.log(`Object ${index}:`);
-            console.log(`  Tiled position: (${obj.x}, ${obj.y})`);
-            console.log(`  Size: ${obj.width}x${obj.height}`);
-            console.log(`  Properties:`, obj.properties);
           }
         }
       });
     }
-
-    console.log("=== END CHEST DEBUG ===");
   }
 
   public testChestInteraction(tileX: number, tileY: number): void {
-    console.log(`Testing chest interaction at tile (${tileX}, ${tileY})`);
-
     const chest = this.canOpenChestAtTile(tileX, tileY);
     if (chest) {
-      console.log(`Found chest: ${chest.id}`);
-      const success = this.openChest(chest);
-      console.log(`Open chest result: ${success}`);
+      this.openChest(chest);
     } else {
       console.log("No chest found at this tile");
     }
@@ -704,15 +664,7 @@ export class GameScene extends Phaser.Scene {
 
           if (analysis) {
             // Compare with current configuration
-            const currentConfig = MapService.getMap(currentMap);
-            if (currentConfig && currentConfig.chunkInfo) {
-              console.log("Current configuration:", currentConfig.chunkInfo);
-              console.log(
-                "Matches suggested values:",
-                currentConfig.chunkInfo.startX === analysis.chunkInfo.startX &&
-                  currentConfig.chunkInfo.startY === analysis.chunkInfo.startY
-              );
-            }
+            MapService.getMap(currentMap);
           }
         })
         .catch((err) => {
@@ -815,7 +767,6 @@ export class GameScene extends Phaser.Scene {
         const alDeeData = NPCService.getNPC("merchant-aldee");
         if (alDeeData) {
           this.spawnNPC(alDeeData, 2128, 1328);
-          console.log("Spawned Al Dee at (2128, 1328)");
         }
       }
     } catch (error) {
@@ -903,8 +854,6 @@ export class GameScene extends Phaser.Scene {
       if (this.isChangingMap) return;
       this.isChangingMap = true;
 
-      console.log(`Starting map change to: ${mapKey}`);
-
       // Update the game state
       useGameStore.getState().updatePlayerMap(mapKey);
 
@@ -952,7 +901,6 @@ export class GameScene extends Phaser.Scene {
             this.finalizeMapTransition();
 
             this.isChangingMap = false;
-            console.log("Map transition completed successfully");
 
             // Add notification about the location change
             const displayMessage = message || `Entered ${MapService.getMapName(mapKey)}`;
@@ -994,13 +942,11 @@ export class GameScene extends Phaser.Scene {
 
       // Clean up MonsterSpawnSystem first
       if (this.monsterSpawnSystem) {
-        console.log("Cleaning up MonsterSpawnSystem during map change");
         this.monsterSpawnSystem.cleanup();
       }
 
       // Clean up ItemHoverSystem first
       if (this.itemHoverSystem) {
-        console.log("Cleaning up ItemHoverSystem during map change");
         this.itemHoverSystem.cleanup();
       }
 
@@ -1049,8 +995,6 @@ export class GameScene extends Phaser.Scene {
 
       // Resume physics
       this.physics.resume();
-
-      console.log("Map cleanup completed");
     } catch (error) {
       console.error("Error in GameScene.cleanupCurrentMap:", error);
     }
@@ -1082,8 +1026,6 @@ export class GameScene extends Phaser.Scene {
       }
       this.cursorPositionSystem = new CursorPositionSystem(this, 32);
       this.cursorPositionSystem.initialize();
-
-      console.log("Systems reinitialized for new map");
     } catch (error) {
       console.error("Error reinitializing systems for new map:", error);
     }

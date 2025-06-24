@@ -75,10 +75,6 @@ export class MapChunkCalculator {
       const bounds = this.extractBoundsFromTiledMap(map.data);
       const chunkInfo = this.calculateChunkInfo(bounds);
 
-      if (process.env.NODE_ENV === "development") {
-        this.logAnalysisResults(mapKey, bounds, chunkInfo);
-      }
-
       return { bounds, chunkInfo };
     } catch (error) {
       console.error(`Error analyzing map ${mapKey}:`, error);
@@ -134,24 +130,6 @@ export class MapChunkCalculator {
   }
 
   /**
-   * Log analysis results in development
-   */
-  private static logAnalysisResults(mapKey: string, bounds: any, chunkInfo: any): void {
-    console.group(`🗺️  Map Analysis: ${mapKey}`);
-    console.log(`📐 Bounds: (${bounds.minX}, ${bounds.minY}) to (${bounds.maxX}, ${bounds.maxY})`);
-    console.log(`⚙️  Suggested chunkInfo:`, chunkInfo);
-    console.log(`📋 MapService configuration:`);
-    console.log(`   "${mapKey}": {`);
-    console.log(
-      `     displayName: "${mapKey.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}",`
-    );
-    console.log(`     defaultSpawn: { x: 0, y: 0 },`);
-    console.log(`     chunkInfo: { startX: ${chunkInfo.startX}, startY: ${chunkInfo.startY} }`);
-    console.log(`   }`);
-    console.groupEnd();
-  }
-
-  /**
    * Development helper: Analyze map from browser console
    */
   static createConsoleHelper(): void {
@@ -165,8 +143,6 @@ export class MapChunkCalculator {
           return null;
         }
       };
-
-      console.log("🔧 Development helper loaded! Use analyzeMap('mapKey') in console");
     }
   }
 }

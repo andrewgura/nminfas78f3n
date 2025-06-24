@@ -15,8 +15,6 @@ export class MonsterAnimationSystem {
       monsterIds.forEach((monsterId) => {
         this.createMonsterAnimations(scene, monsterId);
       });
-
-      console.log("Monster animations created successfully");
     } catch (error) {
       console.error("Error in MonsterAnimationSystem.createAnimations:", error);
     }

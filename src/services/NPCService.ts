@@ -57,8 +57,6 @@ class NPCServicel {
       eventBus.emit("npcService.initialized", {
         count: Object.keys(this.npcs).length,
       });
-
-      console.log(`NPCService initialized with ${Object.keys(this.npcs).length} NPCs`);
     } catch (error) {
       console.error("Error initializing NPC service:", error);
     }

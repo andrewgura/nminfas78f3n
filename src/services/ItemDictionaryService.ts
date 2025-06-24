@@ -331,8 +331,6 @@ class ItemDictionaryService implements IItemDictionary {
       eventBus.emit("itemDictionary.initialized", {
         count: Object.keys(this.itemDatabase).length,
       });
-
-      console.log(`ItemDictionary initialized with ${Object.keys(this.itemDatabase).length} items`);
     } catch (error) {
       console.error("Error initializing item dictionary:", error);
     }
