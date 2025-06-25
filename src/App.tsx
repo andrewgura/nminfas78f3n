@@ -17,6 +17,7 @@ import MapNameLabel from "./components/ui/MapNameLabel";
 import SkillsWindow from "./components/ui/Skills";
 import Resources from "./components/ui/Resources";
 import Creatures from "./components/ui/Creatures";
+import ResourceDisplay from "./components/ui/ResourceDisplay";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -83,11 +84,7 @@ function App() {
               {/* Resources display */}
               <div className="resources-container">
                 <div className="resource-row">
-                  <div className="resource-gold">
-                    <span className="resource-icon">💰</span>
-                    <span className="resource-label">GOLD</span>
-                    <span className="resource-value">100</span>
-                  </div>
+                  <ResourceDisplay icon="💰" label="GOLD" className="gold-container" />
                 </div>
               </div>
               <Inventory />
