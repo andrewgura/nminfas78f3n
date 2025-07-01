@@ -3,6 +3,8 @@ import { Character } from "../Character";
 import { useGameStore } from "@/stores/gameStore";
 import { eventBus } from "@/utils/EventBus";
 import { Item } from "../Item";
+import { ItemDictionary } from "@/services/ItemDictionaryService";
+import { ItemCategory } from "@/types";
 
 export class PlayerItemInteractionComponent extends Component {
   private interactionZone: Phaser.GameObjects.Arc | null = null;
@@ -155,22 +157,50 @@ export class PlayerItemInteractionComponent extends Component {
         }
 
         if (item) {
-          const added = store.addItemInstanceToInventory({
-            templateId: item.templateId,
-            instanceId: item.instanceId,
-            bonusStats: item.bonusStats,
-          });
+          // Check if this is a gold/currency item
+          const itemData = ItemDictionary.getItem(item.templateId);
+          const isGoldItem =
+            item.templateId === "goldCoins" || itemData?.category === ItemCategory.CURRENCY;
 
-          if (added) {
+          if (isGoldItem) {
+            // Handle gold pickup - add to player's gold count instead of inventory
+            // For gold items, we'll default to 1 gold per pickup since Item doesn't store quantity
+            // If you need variable gold amounts, you'll need to modify the Item class or
+            // store quantity information differently
+            const goldAmount = 1; // Default gold amount per pickup
+            const currentGold = store.playerCharacter.gold;
+            store.updatePlayerGold(currentGold + goldAmount);
+
+            // Remove the item from the world
             this.removeNearbyItem(item);
             item.destroy();
 
-            eventBus.emit("ui.message.show", `Picked up ${item.name}`);
-            eventBus.emit("player.item.pickup", {
-              itemId: item.instanceId,
-              name: item.name,
-              templateId: item.templateId,
+            // Show pickup message
+            eventBus.emit("ui.message.show", `Picked up ${goldAmount} gold`);
+            eventBus.emit("player.gold.pickup", {
+              amount: goldAmount,
+              totalGold: currentGold + goldAmount,
             });
+          } else {
+            // Handle regular item pickup - add to inventory
+            const added = store.addItemInstanceToInventory({
+              templateId: item.templateId,
+              instanceId: item.instanceId,
+              bonusStats: item.bonusStats,
+              // Note: quantity is handled by the inventory system for stackable items
+            });
+
+            if (added) {
+              this.removeNearbyItem(item);
+              item.destroy();
+
+              eventBus.emit("ui.message.show", `Picked up ${item.name}`);
+              eventBus.emit("player.item.pickup", {
+                itemId: item.instanceId,
+                name: item.name,
+                templateId: item.templateId,
+              });
+            }
           }
         }
       } else {

@@ -20,6 +20,7 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
   setType?: string;
   sparkleEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
   sparkleGraphics: Phaser.GameObjects.Graphics | null = null;
+  quantity?: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -27,7 +28,8 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
     y: number,
     templateId: string,
     instanceId: string,
-    bonusStats?: ItemBonusStats
+    bonusStats?: ItemBonusStats,
+    quantity?: number
   ) {
     // Create an item instance object for consistent handling
     const instance = {
@@ -57,6 +59,7 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
       this.instanceId = instanceId;
       this.itemType = ItemDictionary.getItemType(templateId);
       this.bonusStats = bonusStats;
+      this.quantity = quantity;
 
       // Check if this is a set item
       this.isSetItem = !!itemData?.set;

@@ -684,23 +684,26 @@ export class GameScene extends Phaser.Scene {
     x: number,
     y: number,
     instanceId?: string,
-    bonusStats?: ItemBonusStats
+    bonusStats?: ItemBonusStats,
+    quantity?: number // ADD THIS PARAMETER
   ): Item | null {
     try {
       // If no instanceId is provided, always create a new instance
       if (!instanceId) {
         // For world drops, 20% chance of random bonus stats
         if (Math.random() < 0.2) {
-          const instance = ItemInstanceManager.createRandomInstance(templateId);
+          const instance = ItemInstanceManager.createRandomInstance(templateId, quantity);
           instanceId = instance.instanceId;
           bonusStats = instance.bonusStats;
+          quantity = instance.quantity;
         } else {
-          const instance = ItemInstanceManager.createItemInstance(templateId);
+          const instance = ItemInstanceManager.createItemInstance(templateId, bonusStats, quantity);
           instanceId = instance.instanceId;
+          quantity = instance.quantity;
         }
       }
 
-      const item = new Item(this, x, y, templateId, instanceId, bonusStats);
+      const item = new Item(this, x, y, templateId, instanceId, bonusStats, quantity);
       this.items.add(item);
 
       // Set up overlap with player
