@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ItemData, ItemInstance, ItemType } from "../../types";
-import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
+import { ItemData, ItemInstance, ItemType } from "../../../types";
+import { ItemInstanceManager } from "../../../utils/ItemInstanceManager";
 
 interface ItemTooltipProps {
   itemInstance?: ItemInstance;

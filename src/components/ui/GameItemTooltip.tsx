@@ -5,8 +5,8 @@ import React, { useState, useEffect } from "react";
 import { useEventBus } from "../../hooks/useEventBus";
 import { ItemCategory } from "../../types";
 import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
-import ItemTooltip from "./ItemTooltip";
-import GoldTooltip from "./GoldTooltip";
+import ItemTooltip from "./tooltips/ItemTooltip";
+import GoldTooltip from "./tooltips/GoldTooltip";
 
 const GameItemTooltip: React.FC = () => {
   const [tooltipData, setTooltipData] = useState<{

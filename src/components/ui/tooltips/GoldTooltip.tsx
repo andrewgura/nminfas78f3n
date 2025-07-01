@@ -1,7 +1,7 @@
 // src/components/ui/GoldTooltip.tsx
+import { ItemInstance } from "@/types";
+import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import React from "react";
-import { ItemData, ItemInstance } from "../../types";
-import { ItemInstanceManager } from "../../utils/ItemInstanceManager";
 
 interface GoldTooltipProps {
   itemInstance?: ItemInstance;

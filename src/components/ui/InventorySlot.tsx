@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { ItemData, ItemInstance } from "../../types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { ItemDictionary } from "@/services/ItemDictionaryService";
-import ItemTooltip from "./ItemTooltip";
+import ItemTooltip from "./tooltips/ItemTooltip";
 
 interface InventorySlotProps {
   id: string;
