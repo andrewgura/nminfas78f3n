@@ -180,11 +180,12 @@ export class ItemHoverSystem {
         closestItem.applyGlowEffect();
       }
 
-      // Get item instance data
+      // Get item instance data - INCLUDE THE QUANTITY!
       const itemInstance = {
         templateId: closestItem.templateId,
         instanceId: closestItem.instanceId,
         bonusStats: closestItem.bonusStats,
+        quantity: closestItem.quantity, // THIS WAS MISSING!
       };
 
       // Emit event for React tooltip component to display
@@ -199,19 +200,6 @@ export class ItemHoverSystem {
         name: closestItem.name,
       });
     }
-  }
-
-  private getScreenPosition(item: Item, scene: Phaser.Scene): { x: number; y: number } {
-    // Convert world position to screen coordinates
-    const camera = scene.cameras.main;
-    const screenX = (item.x - camera.scrollX) * camera.zoom;
-    const screenY = (item.y - camera.scrollY) * camera.zoom;
-
-    // Position tooltip to the right of the item
-    return {
-      x: Math.min(screenX + 50, window.innerWidth - 300), // Avoid going off-screen
-      y: Math.min(screenY - 50, window.innerHeight - 300),
-    };
   }
 
   private clearHoverState(): void {

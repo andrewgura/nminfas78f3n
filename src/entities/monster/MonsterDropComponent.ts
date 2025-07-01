@@ -1,3 +1,4 @@
+import { ItemDictionary } from "@/services/ItemDictionaryService";
 import { Component } from "../Component";
 import { Monster } from "../Monster";
 import { ItemDrop } from "@/types";
@@ -49,27 +50,47 @@ export class MonsterDropComponent extends Component {
 
           // Spawn the item(s)
           if (gameScene.spawnItem) {
-            // Adjust position for multiple drops
+            // Adjust position for multiple different drops
             const offsetX = droppedItems > 0 ? Math.random() * 20 - 10 : 0;
             const offsetY = droppedItems > 0 ? Math.random() * 20 - 10 : 0;
 
-            // Create the items
-            for (let i = 0; i < quantity; i++) {
-              const itemX = x + offsetX + (i > 0 ? Math.random() * 10 - 5 : 0);
-              const itemY = y + offsetY + (i > 0 ? Math.random() * 10 - 5 : 0);
+            // For stackable items (like gold), create ONE item with the full quantity
+            const itemData = ItemDictionary.getItem(drop.itemId);
+            if (itemData?.stackable) {
+              // Create a single item with the correct quantity
+              const item = gameScene.spawnItem(
+                drop.itemId,
+                x + offsetX,
+                y + offsetY,
+                undefined, // instanceId
+                undefined, // bonusStats
+                quantity // quantity - this is the key fix!
+              );
 
-              const item = gameScene.spawnItem(drop.itemId, itemX, itemY);
-
-              // Add to drops array for the event
               if (item) {
                 drops.push({
                   itemId: item.templateId,
-                  quantity: 1,
+                  quantity: quantity, // Record the actual quantity dropped
                 });
+              }
+            } else {
+              // For non-stackable items, create individual items
+              for (let i = 0; i < quantity; i++) {
+                const itemX = x + offsetX + (i > 0 ? Math.random() * 10 - 5 : 0);
+                const itemY = y + offsetY + (i > 0 ? Math.random() * 10 - 5 : 0);
+
+                const item = gameScene.spawnItem(drop.itemId, itemX, itemY);
+
+                if (item) {
+                  drops.push({
+                    itemId: item.templateId,
+                    quantity: 1,
+                  });
+                }
               }
             }
 
-            droppedItems += quantity;
+            droppedItems += 1; // Count the drop type, not individual items
           }
         }
       });

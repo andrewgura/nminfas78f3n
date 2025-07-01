@@ -12,8 +12,9 @@ export const CHEST_LOOT_TABLES: Record<string, LootEntry[]> = {
   "noob-cave-table-poor": [
     { itemId: "greatSword", chance: 0.8 },
     { itemId: "sword1", chance: 0.9 },
+    { itemId: "goldCoins", chance: 1.0, minQuantity: 2, maxQuantity: 5 },
   ],
-  default: [{ itemId: "gold-coins", chance: 1.0 }],
+  default: [{ itemId: "goldCoins", chance: 1.0 }],
 };
 
 export class ChestLootTables {

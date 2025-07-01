@@ -164,18 +164,18 @@ export class PlayerItemInteractionComponent extends Component {
 
           if (isGoldItem) {
             // Handle gold pickup - add to player's gold count instead of inventory
-            // For gold items, we'll default to 1 gold per pickup since Item doesn't store quantity
-            // If you need variable gold amounts, you'll need to modify the Item class or
-            // store quantity information differently
-            const goldAmount = 1; // Default gold amount per pickup
+            // Use the actual quantity from the item, not a hardcoded default!
+            const goldAmount = item.quantity || 1; // Get the actual gold amount
             const currentGold = store.playerCharacter.gold;
+
+            // Use the simpler method that just sets the new total
             store.updatePlayerGold(currentGold + goldAmount);
 
             // Remove the item from the world
             this.removeNearbyItem(item);
             item.destroy();
 
-            // Show pickup message
+            // Show pickup message with actual amount
             eventBus.emit("ui.message.show", `Picked up ${goldAmount} gold`);
             eventBus.emit("player.gold.pickup", {
               amount: goldAmount,
@@ -187,7 +187,7 @@ export class PlayerItemInteractionComponent extends Component {
               templateId: item.templateId,
               instanceId: item.instanceId,
               bonusStats: item.bonusStats,
-              // Note: quantity is handled by the inventory system for stackable items
+              quantity: item.quantity, // Make sure to include quantity for stackable items
             });
 
             if (added) {

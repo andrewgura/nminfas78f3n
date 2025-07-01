@@ -16,7 +16,7 @@ const MONSTER_DATA: Record<string, MonsterData> = {
     armor: 2,
     drops: [
       { itemId: "sword1", chance: 0.15 },
-      { itemId: "goldCoins", chance: 0.95, minQuantity: 2, maxQuantity: 4 },
+      { itemId: "goldCoins", chance: 0.95, minQuantity: 5, maxQuantity: 8 },
     ],
     isAggressive: true,
     attackType: MonsterAttackType.Melee,

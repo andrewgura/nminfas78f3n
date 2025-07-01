@@ -601,13 +601,22 @@ export const useGameStore = create<GameState>()(
     },
 
     // Player stats
-    updatePlayerGold: (amount) => {
-      set((state) => ({
-        playerCharacter: {
-          ...state.playerCharacter,
-          gold: Math.max(0, state.playerCharacter.gold + amount),
-        },
-      }));
+    updatePlayerGold: (goldValue: number, isAdditive: boolean = false) => {
+      set((state) => {
+        const newGold = isAdditive
+          ? Math.max(0, state.playerCharacter.gold + goldValue)
+          : Math.max(0, goldValue);
+
+        return {
+          playerCharacter: {
+            ...state.playerCharacter,
+            gold: newGold,
+          },
+        };
+      });
+
+      const currentGold = get().playerCharacter.gold;
+      eventBus.emit("playerCharacter.gold.changed", currentGold);
     },
 
     updatePlayerMaxCapacity: (amount) => {
