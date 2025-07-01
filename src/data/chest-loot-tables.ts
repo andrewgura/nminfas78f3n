@@ -22,7 +22,7 @@ export class ChestLootTables {
     lootTableId: string,
     x: number,
     y: number,
-    spawnFunction: (itemId: string, x: number, y: number) => void
+    spawnFunction: (itemId: string, x: number, y: number, quantity?: number) => void
   ): void {
     try {
       // Get the table or use default if not found
@@ -41,10 +41,13 @@ export class ChestLootTables {
             quantity = Math.floor(
               Math.random() * (item.maxQuantity - item.minQuantity + 1) + item.minQuantity
             );
+          } else if (item.minQuantity !== undefined) {
+            // If only minQuantity is specified, use it as the fixed quantity
+            quantity = item.minQuantity;
           }
 
-          // Spawn the item
-          spawnFunction(item.itemId, x + offsetX, y + offsetY);
+          // Spawn the item WITH the calculated quantity
+          spawnFunction(item.itemId, x + offsetX, y + offsetY, quantity);
         }
       });
     } catch (error) {

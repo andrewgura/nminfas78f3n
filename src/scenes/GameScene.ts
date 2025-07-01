@@ -8,7 +8,7 @@ import { PlayerCharacter } from "@/entities/PlayerCharacter";
 import { CursorPositionSystem } from "@/services/CursorPositionSystem";
 import { ItemHoverSystem } from "@/services/ItemHoverSystem";
 import { useGameStore } from "@/stores/gameStore";
-import { ItemBonusStats } from "@/types";
+import { ItemBonusStats, ItemCategory, ItemData } from "@/types";
 import { ItemInstanceManager } from "@/utils/ItemInstanceManager";
 import { autoAttackSystem } from "@/services/AutoAttackSystem";
 import { NPCService } from "@/services/NPCService";
@@ -16,6 +16,7 @@ import { PortalSystem } from "@/services/PortalSystem";
 import { MonsterSpawnSystem } from "@/services/MonsterSpawnSystem";
 import { Chest } from "@/entities/Chest";
 import { ChestLootTables } from "@/data/chest-loot-tables";
+import { ItemDictionary } from "@/services/ItemDictionaryService";
 
 // Chest state interface
 interface ChestState {
@@ -476,12 +477,16 @@ export class GameScene extends Phaser.Scene {
       chest.setVisible(false);
       chest.setActive(false);
 
-      // Generate loot at chest position using the already imported ChestLootTables
+      // Generate loot at chest position using the updated ChestLootTables
+      // Now properly passing the quantity parameter to spawnItem
       ChestLootTables.generateLootFromTable(
         chestState.lootTable,
         chest.x,
         chest.y,
-        (itemId: string, x: number, y: number) => this.spawnItem(itemId, x, y)
+        (itemId: string, x: number, y: number, quantity?: number) => {
+          // Pass all parameters including quantity to spawnItem
+          this.spawnItem(itemId, x, y, undefined, undefined, quantity);
+        }
       );
 
       // Schedule respawn
@@ -685,13 +690,17 @@ export class GameScene extends Phaser.Scene {
     y: number,
     instanceId?: string,
     bonusStats?: ItemBonusStats,
-    quantity?: number // ADD THIS PARAMETER
+    quantity?: number
   ): Item | null {
     try {
       // If no instanceId is provided, always create a new instance
       if (!instanceId) {
-        // For world drops, 20% chance of random bonus stats
-        if (Math.random() < 0.2) {
+        // Check if this item type should be eligible for bonus stats
+        const itemData = ItemDictionary.getItem(templateId);
+        const shouldGetBonusStats = this.isEligibleForBonusStats(itemData);
+
+        // For equipment items dropped in the world, 20% chance of random bonus stats
+        if (shouldGetBonusStats && Math.random() < 0.2) {
           const instance = ItemInstanceManager.createRandomInstance(templateId, quantity);
           instanceId = instance.instanceId;
           bonusStats = instance.bonusStats;
@@ -721,6 +730,24 @@ export class GameScene extends Phaser.Scene {
       console.error("Error in GameScene.spawnItem:", error);
       return null;
     }
+  }
+
+  private isEligibleForBonusStats(itemData: ItemData | null): boolean {
+    if (!itemData || !itemData.category) return false;
+
+    // Only equipment items should be eligible for bonus stats
+    const equipmentCategories = [
+      ItemCategory.WEAPON_MELEE,
+      ItemCategory.WEAPON_MAGIC,
+      ItemCategory.WEAPON_RANGED,
+      ItemCategory.ARMOR,
+      ItemCategory.SHIELD,
+      ItemCategory.HELMET,
+      ItemCategory.AMULET,
+      ItemCategory.TRINKET,
+    ];
+
+    return equipmentCategories.includes(itemData.category);
   }
 
   spawnMonster(monsterType: string, x: number, y: number): Monster | null {
