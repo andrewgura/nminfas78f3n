@@ -17,7 +17,7 @@ import MapNameLabel from "./components/ui/MapNameLabel";
 import SkillsWindow from "./components/ui/Skills";
 import Resources from "./components/ui/Resources";
 import Creatures from "./components/ui/Creatures";
-import ResourceDisplay from "./components/ui/ResourceDisplay";
+import CurrencyDisplay from "./components/ui/CurrencyDisplay";
 
 function App() {
   const [windowSize, setWindowSize] = React.useState({
@@ -81,10 +81,9 @@ function App() {
           <div className="ui-sidebar">
             <UINavBar />
             <div className="sidebar-content">
-              {/* Resources display */}
               <div className="resources-container">
                 <div className="resource-row">
-                  <ResourceDisplay icon="💰" label="GOLD" className="gold-container" />
+                  <CurrencyDisplay icon="💰" label="GOLD" className="gold-container" />
                 </div>
               </div>
               <Inventory />

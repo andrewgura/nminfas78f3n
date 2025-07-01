@@ -1,13 +1,13 @@
 import React from "react";
 import { useGameStore } from "../../stores/gameStore";
 
-interface ResourceDisplayProps {
+interface CurrencyDisplayProps {
   icon: string;
   label: string;
   className?: string;
 }
 
-const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ icon, label, className = "" }) => {
+const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({ icon, label, className = "" }) => {
   const { playerCharacter } = useGameStore();
 
   return (
@@ -19,4 +19,4 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({ icon, label, classNam
   );
 };
 
-export default ResourceDisplay;
+export default CurrencyDisplay;
